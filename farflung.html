@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farflung Multi-Player Analytics Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        rarity: {
+                            farflung: '#FFD700',
+                            elusive: '#9C27B0',
+                            rare: '#F44336',
+                            uncommon: '#4CAF50',
+                            common: '#9E9E9E',
+                            miss: '#2196F3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        .leaflet-container { background-color: #0f172a !important; border-radius: 0.75rem; }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-12">
+
+    <!-- Header & Navigation -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-rose-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/20">
+                    F
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-100 tracking-tight leading-none">Farflung Analytics</h1>
+                    <p class="text-xs text-slate-400 mt-0.5">Multi-Player Head-to-Head Comparison & Advanced Metrics</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button id="btnLoadSingleSample" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg transition flex items-center space-x-2">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Reset to Player 1 Only</span>
+                </button>
+                <button id="btnLoad4Sample" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white rounded-lg transition shadow-lg shadow-indigo-600/20 flex items-center space-x-2">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Load Demo 4-Player Stats</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        <!-- 4-Player File Upload Slots -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+                    <i class="fa-solid fa-folder-open text-indigo-400"></i>
+                    <span>Player JSON Data Slots (Player 1 Pre-loaded; Slots 2-4 Empty)</span>
+                </h2>
+                <span class="text-xs text-slate-400">Upload JSON exports to compare additional players</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Slot 1 (Default Preloaded) -->
+                <div class="border border-indigo-500/50 bg-indigo-500/10 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative group" onclick="document.getElementById('fileInput1').click()">
+                    <div class="flex items-center justify-between text-xs font-semibold text-indigo-400 mb-2">
+                        <span id="labelPlayer1">Adam (Player 1)</span>
+                        <i class="fa-solid fa-circle text-[10px]" style="color: #4285F4;"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <i class="fa-solid fa-user-check text-lg text-indigo-400"></i>
+                        <p id="fileName1" class="text-xs text-slate-200 font-medium truncate">Pre-loaded Data</p>
+                    </div>
+                    <input type="file" id="fileInput1" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 0)">
+                </div>
+
+                <!-- Slot 2 -->
+                <div id="slotCard2" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-rose-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput2').click()">
+                    <div class="flex items-center justify-between text-xs font-semibold text-rose-400 mb-2">
+                        <span id="labelPlayer2">Player 2</span>
+                        <i class="fa-solid fa-circle text-[10px]" style="color: #EA4335;"></i>
+                    </div>
+                    <div class="space-y-1 py-1">
+                        <i id="iconSlot2" class="fa-solid fa-plus text-lg text-slate-500"></i>
+                        <p id="fileName2" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                    </div>
+                    <input type="file" id="fileInput2" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 1)">
+                    <button id="btnClearSlot2" class="hidden absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs px-1" onclick="clearSlot(event, 1)"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Slot 3 -->
+                <div id="slotCard3" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-amber-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput3').click()">
+                    <div class="flex items-center justify-between text-xs font-semibold text-amber-400 mb-2">
+                        <span id="labelPlayer3">Player 3</span>
+                        <i class="fa-solid fa-circle text-[10px]" style="color: #FBBC05;"></i>
+                    </div>
+                    <div class="space-y-1 py-1">
+                        <i id="iconSlot3" class="fa-solid fa-plus text-lg text-slate-500"></i>
+                        <p id="fileName3" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                    </div>
+                    <input type="file" id="fileInput3" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 2)">
+                    <button id="btnClearSlot3" class="hidden absolute top-2 right-2 text-slate-500 hover:text-amber-400 text-xs px-1" onclick="clearSlot(event, 2)"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Slot 4 -->
+                <div id="slotCard4" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-emerald-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput4').click()">
+                    <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 mb-2">
+                        <span id="labelPlayer4">Player 4</span>
+                        <i class="fa-solid fa-circle text-[10px]" style="color: #34A853;"></i>
+                    </div>
+                    <div class="space-y-1 py-1">
+                        <i id="iconSlot4" class="fa-solid fa-plus text-lg text-slate-500"></i>
+                        <p id="fileName4" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                    </div>
+                    <input type="file" id="fileInput4" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 3)">
+                    <button id="btnClearSlot4" class="hidden absolute top-2 right-2 text-slate-500 hover:text-emerald-400 text-xs px-1" onclick="clearSlot(event, 3)"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Head-to-Head KPI Summary Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Days Played</span>
+                    <i class="fa-regular fa-calendar text-indigo-400"></i>
+                </div>
+                <div id="kpiDaysGrid" class="space-y-1 text-xs"></div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Total Pins</span>
+                    <i class="fa-solid fa-location-dot text-emerald-400"></i>
+                </div>
+                <div id="kpiPinsGrid" class="space-y-1 text-xs"></div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Hit Accuracy %</span>
+                    <i class="fa-solid fa-bullseye text-amber-400"></i>
+                </div>
+                <div id="kpiAccuracyGrid" class="space-y-1 text-xs"></div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Total Distance</span>
+                    <i class="fa-solid fa-route text-sky-400"></i>
+                </div>
+                <div id="kpiTotalDistGrid" class="space-y-1 text-xs"></div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Daily Average</span>
+                    <i class="fa-solid fa-chart-line text-purple-400"></i>
+                </div>
+                <div id="kpiAvgDistGrid" class="space-y-1 text-xs"></div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
+                    <span>Passport Stamps</span>
+                    <i class="fa-solid fa-passport text-rose-400"></i>
+                </div>
+                <div id="kpiPassportGrid" class="space-y-1 text-xs"></div>
+            </div>
+        </div>
+
+        <!-- Section 1: Multi-Player Expedition Score Trends (Row 1) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Expedition Score (km)</h3>
+                    <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Daily</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlot1"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Cumulative Average Distance</h3>
+                    <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Trend</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlot2"></canvas>
+                </div>
+            </div>
+
+            <!-- Target & Pace Projection Line -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Pace vs. 300km/Day Target</h3>
+                    <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Pace Tracker</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlotTargetPace"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Advanced Statistical Breakdowns (Row 2) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Round-by-Round Success Rate</h3>
+                    <span class="text-xs text-slate-400">Rounds 1 to 5</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlotRounds"></canvas>
+                </div>
+            </div>
+
+            <!-- Score Bin Probability Curve -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Score Bin Probability</h3>
+                    <span class="text-xs text-slate-400">10-Pt Windows (0-500)</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlot5"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Win Leaderboard (Visible when >1 player loaded) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Daily Lead / 1st Place Wins</h3>
+                    <span class="text-xs text-amber-400 font-medium"><i class="fa-solid fa-trophy"></i> Leaderboard</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlotWins"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Distribution & Radar Analytics (Row 3) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Selections by Rarity</h3>
+                    <span class="text-xs text-slate-400">Grouped Breakdown</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlot4"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Score Distribution Histogram</h3>
+                    <span class="text-xs text-slate-400">Score Frequencies</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlotHistogram"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-200">Daily Breakdown Radar</h3>
+                    <span class="text-xs text-slate-400">Mon - Sun Comparison</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="chartPlot6"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Interactive Map with Layer Toggles (Row 4) -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+                        <span>Global Pin Map Coordinates</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">Toggle map overlays: Pin Markers, Density Heatmap, and Miss Vector Lines.</p>
+                </div>
+
+                <!-- Layer Toggle Controls -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <div class="bg-slate-950 border border-slate-800 rounded-lg p-1 flex items-center space-x-2 px-2.5">
+                        <label class="flex items-center space-x-1.5 cursor-pointer">
+                            <input type="checkbox" id="togglePinMarkers" checked class="rounded border-slate-700 text-indigo-600 focus:ring-0">
+                            <span class="text-slate-300">Pins</span>
+                        </label>
+                        <span class="text-slate-700">|</span>
+                        <label class="flex items-center space-x-1.5 cursor-pointer">
+                            <input type="checkbox" id="toggleHeatmap" class="rounded border-slate-700 text-rose-600 focus:ring-0">
+                            <span class="text-slate-300">Heatmap</span>
+                        </label>
+                        <span class="text-slate-700">|</span>
+                        <label class="flex items-center space-x-1.5 cursor-pointer">
+                            <input type="checkbox" id="toggleMissVectors" class="rounded border-slate-700 text-amber-600 focus:ring-0">
+                            <span class="text-slate-300">Miss Vectors</span>
+                        </label>
+                    </div>
+
+                    <select id="mapPlayerFilter" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 focus:outline-none focus:border-indigo-500">
+                        <option value="ALL">All Active Players</option>
+                    </select>
+
+                    <div class="flex items-center gap-1">
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-amber-500/50 bg-amber-500/10 text-amber-300 text-[11px]" data-rarity="Farflung">Farflung</button>
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-purple-500/50 bg-purple-500/10 text-purple-300 text-[11px]" data-rarity="Elusive">Elusive</button>
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-red-500/50 bg-red-500/10 text-red-300 text-[11px]" data-rarity="Rare">Rare</button>
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 text-[11px]" data-rarity="Uncommon">Uncommon</button>
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-slate-500/50 bg-slate-500/10 text-slate-300 text-[11px]" data-rarity="Common">Common</button>
+                        <button class="map-filter-btn px-2 py-0.5 rounded-full border border-blue-500/50 bg-blue-500/10 text-blue-300 text-[11px]" data-rarity="Miss">Miss</button>
+                        <button id="btnResetMapFilters" class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-400 text-[11px]">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaflet Container -->
+            <div id="map" class="h-96 w-full rounded-xl border border-slate-800"></div>
+        </div>
+
+        <!-- Section 5: Daily Pin Score Table (Row 5) -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200">Daily Multi-Player Score Breakdown</h3>
+                    <p class="text-xs text-slate-400">Head-to-head daily total distance and pin score breakdown across active players.</p>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500"></i>
+                        <input type="text" id="tableSearchInput" placeholder="Filter date or card..." class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 w-48 sm:w-64">
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-xs text-left text-slate-300">
+                    <thead id="dailyTableHead" class="text-[11px] uppercase bg-slate-950 text-slate-400 border-b border-slate-800"></thead>
+                    <tbody id="dailyTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 text-center text-xs text-slate-600">
+        <p>Farflung Interactive Multi-Player Analytics Dashboard &bull; Built with Chart.js & Leaflet.js</p>
+    </footer>
+
+    <!-- Main Application Logic -->
+    <script>
+        const RARITY_MAP = {
+            'farflung': 'Farflung',
+            'uncharted': 'Elusive',
+            'wayfarer': 'Rare',
+            'traveller': 'Uncommon',
+            'tourist': 'Common',
+            'lost': 'Miss'
+        };
+
+        const RARITY_COLORS = {
+            'Farflung': '#FFD700',
+            'Elusive': '#9C27B0',
+            'Rare': '#F44336',
+            'Uncommon': '#4CAF50',
+            'Common': '#9E9E9E',
+            'Miss': '#2196F3'
+        };
+
+        const PLAYER_PALETTE = [
+            { name: 'Adam', color: '#4285F4', bg: 'rgba(66, 133, 244, 0.2)' },
+            { name: 'Dan', color: '#EA4335', bg: 'rgba(234, 67, 53, 0.2)' },
+            { name: 'Jakob', color: '#FBBC05', bg: 'rgba(251, 188, 5, 0.2)' },
+            { name: 'Nathan', color: '#34A853', bg: 'rgba(52, 168, 83, 0.2)' }
+        ];
+
+        let loadedPlayers = [null, null, null, null];
+        let chart1, chart2, chart3, chart4, chart5, chart6, chartTargetPace, chartRounds, chartHistogram, chartWins;
+        let leafletMap = null;
+        let mapMarkers = [];
+        let heatLayer = null;
+        let vectorLines = [];
+
+        // Sample Data for Player 1 (Adam)
+        const sampleFarflungData = {
+            "expeditions": [
+                {"day":"2026-10-20","distanceKm":210,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pin a country with a Z in its name","answer":"ZMB","countedAs":"ZMB","lon":25.04,"lat":-14.51,"zoom":2.2},
+                    {"round":2,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pin an island country in the Caribbean","answer":"TTO","countedAs":"TTO","lon":-60.67,"lat":11.25,"zoom":5.8},
+                    {"round":3,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Pin a country where Game of Thrones was filmed","answer":null,"countedAs":"POL","lon":19.66,"lat":51.00,"zoom":2.8},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pin a country whose capital gives name to food","answer":"DEU","countedAs":"DEU","lon":9.57,"lat":51.22,"zoom":2.2},
+                    {"round":5,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Pin Victor Frankenstein sets foot in","answer":null,"countedAs":"DNK","lon":-38.83,"lat":80.53,"zoom":1.3}
+                ]},
+                {"day":"2026-10-21","distanceKm":280,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"New 7 Wonders of Nature","answer":null,"countedAs":"JPN","lon":137.5,"lat":35.8,"zoom":3.5},
+                    {"round":2,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Jesus statue over 20 meters","answer":"ITA","countedAs":"ITA","lon":12.59,"lat":42.96,"zoom":3.5},
+                    {"round":3,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Pin a country where vampire bats live","answer":"GUY","countedAs":"GUY","lon":-58.71,"lat":6.16,"zoom":3.3},
+                    {"round":4,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Alexander the Great empire","answer":"ALB","countedAs":"ALB","lon":19.64,"lat":41.89,"zoom":5.1},
+                    {"round":5,"rarity":"tourist","distanceKm":40,"points":40,"cardText":"Jollibee location","answer":"PHL","countedAs":"PHL","lon":124.53,"lat":7.72,"zoom":3.6}
+                ]},
+                {"day":"2026-10-22","distanceKm":195,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Taco Bell restaurant","answer":null,"countedAs":"AFG","lon":64.58,"lat":33.10,"zoom":2.6},
+                    {"round":2,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Lion as national symbol","answer":"ETH","countedAs":"ETH","lon":41.74,"lat":8.38,"zoom":3.4},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"High speed rail 300km/h","answer":"CHN","countedAs":"CHN","lon":113.55,"lat":33.32,"zoom":2.2},
+                    {"round":4,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Plant on flag","answer":null,"countedAs":"KIR","lon":-157.44,"lat":1.90,"zoom":4.4},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Impact crater over 50km","answer":"RUS","countedAs":"RUS","lon":124.18,"lat":65.52,"zoom":-0.1}
+                ]},
+                {"day":"2026-10-23","distanceKm":155,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Baltic sea coast","answer":null,"countedAs":"GEO","lon":43.03,"lat":42.53,"zoom":4.1},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Diwali public holiday","answer":null,"countedAs":"ZMB","lon":24.97,"lat":-14.91,"zoom":2.9},
+                    {"round":3,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Physical Uniqlo store","answer":"ESP","countedAs":"ESP","lon":-2.41,"lat":40.70,"zoom":3.7},
+                    {"round":4,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Muhammad Ali bout","answer":null,"countedAs":"MEX","lon":-100.29,"lat":21.67,"zoom":2.5},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Diamond mines today","answer":"COD","countedAs":"COD","lon":21.70,"lat":-2.63,"zoom":3.5}
+                ]},
+                {"day":"2026-10-24","distanceKm":265,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Over 100 million people","answer":null,"countedAs":"POL","lon":20.00,"lat":51.86,"zoom":3.0},
+                    {"round":2,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Napoleon commanded battle","answer":"POL","countedAs":"POL","lon":21.40,"lat":51.97,"zoom":3.7},
+                    {"round":3,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Fast & Furious filmed","answer":"ITA","countedAs":"ITA","lon":13.96,"lat":42.94,"zoom":2.7},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Mediterranean coast","answer":"CYP","countedAs":"CYP","lon":32.98,"lat":34.88,"zoom":6.3},
+                    {"round":5,"rarity":"tourist","distanceKm":40,"points":40,"cardText":"River dolphins in wild","answer":"BRA","countedAs":"BRA","lon":-56.96,"lat":-10.58,"zoom":3.1}
+                ]},
+                {"day":"2026-10-25","distanceKm":380,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Inca Empire land","answer":"CHL","countedAs":"CHL","lon":-69.77,"lat":-25.19,"zoom":3.5},
+                    {"round":2,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Daiso shop today","answer":"KOR","countedAs":"KOR","lon":127.55,"lat":36.10,"zoom":4.1},
+                    {"round":3,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Traditional rice wine","answer":"LAO","countedAs":"LAO","lon":102.85,"lat":19.62,"zoom":3.6},
+                    {"round":4,"rarity":"farflung","distanceKm":100,"points":100,"cardText":"LEGO landmark set","answer":"NZL","countedAs":"NZL","lon":169.47,"lat":-44.72,"zoom":4.4},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Doctor Who filmed","answer":"ZAF","countedAs":"ZAF","lon":24.01,"lat":-30.19,"zoom":2.4}
+                ]},
+                {"day":"2026-10-26","distanceKm":250,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Einstein visited","answer":"GBR","countedAs":"GBR","lon":-2.89,"lat":52.97,"zoom":2.5},
+                    {"round":2,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Floating market","answer":"VNM","countedAs":"VNM","lon":107.68,"lat":11.44,"zoom":4.7},
+                    {"round":3,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Bioluminescent bay","answer":null,"countedAs":"TUR","lon":30.16,"lat":38.00,"zoom":4.6},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Sloths live in wild","answer":"BRA","countedAs":"BRA","lon":-50.00,"lat":-10.02,"zoom":1.4},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Phoenician settlement","answer":"MAR","countedAs":"MAR","lon":-7.56,"lat":33.20,"zoom":3.9}
+                ]},
+                {"day":"2026-10-27","distanceKm":225,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Natural salt flat","answer":"IRN","countedAs":"IRN","lon":56.73,"lat":31.93,"zoom":2.4},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Gordon Ramsay restaurant","answer":null,"countedAs":"SWE","lon":15.55,"lat":59.95,"zoom":3.1},
+                    {"round":3,"rarity":"lost","distanceKm":0,"points":0,"cardText":"G20 member","answer":null,"countedAs":"GRC","lon":21.45,"lat":39.62,"zoom":4.0},
+                    {"round":4,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Floating road bridge","answer":"NLD","countedAs":"NLD","lon":5.14,"lat":51.88,"zoom":5.4},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Capybaras native","answer":"URY","countedAs":"URY","lon":-54.70,"lat":-31.90,"zoom":2.4}
+                ]},
+                {"day":"2026-10-28","distanceKm":220,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Uses Peso currency","answer":null,"countedAs":"HND","lon":-86.88,"lat":14.38,"zoom":4.0},
+                    {"round":2,"rarity":"tourist","distanceKm":40,"points":40,"cardText":"Horseback archery sport","answer":"MNG","countedAs":"MNG","lon":106.77,"lat":47.36,"zoom":1.6},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Rhine flows through","answer":"CHE","countedAs":"CHE","lon":8.86,"lat":47.24,"zoom":4.5},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"The Office version","answer":"IND","countedAs":"IND","lon":78.73,"lat":21.44,"zoom":2.3},
+                    {"round":5,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Puffins breed in wild","answer":"NOR","countedAs":"NOR","lon":16.60,"lat":78.35,"zoom":2.1}
+                ]},
+                {"day":"2026-10-29","distanceKm":210,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"FIFA World Cup host","answer":"ITA","countedAs":"ITA","lon":10.25,"lat":43.76,"zoom":3.1},
+                    {"round":2,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Starts/ends same letter","answer":"DZA","countedAs":"DZA","lon":4.63,"lat":26.75,"zoom":2.8},
+                    {"round":3,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Three Michelin stars","answer":null,"countedAs":"GRC","lon":21.58,"lat":39.54,"zoom":3.7},
+                    {"round":4,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Nike shoes manufactured","answer":null,"countedAs":"MMR","lon":96.77,"lat":20.09,"zoom":4.0},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Dutch once ruled","answer":"MYS","countedAs":"MYS","lon":114.47,"lat":2.87,"zoom":3.7}
+                ]},
+                {"day":"2026-10-30","distanceKm":395,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Cross on flag","answer":"GEO","countedAs":"GEO","lon":42.55,"lat":42.85,"zoom":3.6},
+                    {"round":2,"rarity":"farflung","distanceKm":100,"points":100,"cardText":"Disney/Universal park","answer":"SGP","countedAs":"SGP","lon":103.81,"lat":1.34,"zoom":7.9},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"James Bond film shot","answer":"JAM","countedAs":"JAM","lon":-77.53,"lat":18.19,"zoom":4.8},
+                    {"round":4,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Historic Silk Road","answer":"AZE","countedAs":"AZE","lon":47.84,"lat":40.88,"zoom":3.1},
+                    {"round":5,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Horseshoe crabs native","answer":"SGP","countedAs":"SGP","lon":103.79,"lat":1.34,"zoom":8.3}
+                ]},
+                {"day":"2026-10-31","distanceKm":225,"pins":[
+                    {"round":1,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Witchcraft execution","answer":null,"countedAs":"NER","lon":11.05,"lat":17.71,"zoom":2.4},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Top 10 pumpkin growers","answer":null,"countedAs":"NLD","lon":5.05,"lat":52.09,"zoom":5.5},
+                    {"round":3,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Ripley's museum","answer":"AUS","countedAs":"AUS","lon":128.53,"lat":-34.62,"zoom":-0.1},
+                    {"round":4,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Mummies over 500yrs","answer":"FRA","countedAs":"FRA","lon":3.92,"lat":46.45,"zoom":2.5},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Catacombs human remains","answer":"CHN","countedAs":"CHN","lon":110.43,"lat":32.32,"zoom":1.4}
+                ]},
+                {"day":"2026-11-01","distanceKm":335,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Four stars on flag","answer":"SGP","countedAs":"SGP","lon":103.85,"lat":1.36,"zoom":7.6},
+                    {"round":2,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Aldi supermarket","answer":"PRT","countedAs":"PRT","lon":-8.45,"lat":39.16,"zoom":4.1},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Petrified forest","answer":"GRC","countedAs":"GRC","lon":21.63,"lat":39.33,"zoom":4.2},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Eiffel tower replica","answer":"CHN","countedAs":"CHN","lon":109.83,"lat":31.89,"zoom":1.6},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Mythical national animal","answer":"HUN","countedAs":"HUN","lon":19.07,"lat":47.24,"zoom":3.6}
+                ]},
+                {"day":"2026-11-02","distanceKm":295,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Olive oil top producer","answer":"PRT","countedAs":"PRT","lon":-8.62,"lat":39.39,"zoom":3.2},
+                    {"round":2,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Sesame street version","answer":"PAK","countedAs":"PAK","lon":68.82,"lat":28.65,"zoom":3.1},
+                    {"round":3,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Red pandas in wild","answer":"BTN","countedAs":"BTN","lon":89.43,"lat":27.55,"zoom":3.4},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Nuclear power electricity","answer":"KOR","countedAs":"KOR","lon":127.46,"lat":36.39,"zoom":3.8},
+                    {"round":5,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Click consonant language","answer":null,"countedAs":"IDN","lon":114.49,"lat":1.06,"zoom":3.2}
+                ]},
+                {"day":"2026-11-03","distanceKm":305,"pins":[
+                    {"round":1,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Arctic circle crosses","answer":"NOR","countedAs":"NOR","lon":22.73,"lat":69.52,"zoom":2.9},
+                    {"round":2,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Tigers in wild","answer":"MMR","countedAs":"MMR","lon":98.27,"lat":10.14,"zoom":3.2},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Simpsons visit","answer":"JPN","countedAs":"JPN","lon":137.69,"lat":36.15,"zoom":2.5},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Hosted Lollapalooza","answer":"DEU","countedAs":"DEU","lon":8.45,"lat":50.85,"zoom":2.6},
+                    {"round":5,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Ice hockey world champions","answer":"RUS","countedAs":"RUS","lon":48.04,"lat":55.66,"zoom":2.1}
+                ]},
+                {"day":"2026-11-04","distanceKm":280,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Flag blue and white","answer":"SOM","countedAs":"SOM","lon":42.50,"lat":2.38,"zoom":2.5},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Queen Elizabeth money","answer":null,"countedAs":"IND","lon":79.58,"lat":21.27,"zoom":2.4},
+                    {"round":3,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Ice age cave art","answer":"CHE","countedAs":"CHE","lon":8.02,"lat":46.83,"zoom":4.2},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Undersea rail tunnel","answer":"FRA","countedAs":"FRA","lon":1.54,"lat":45.86,"zoom":3.0},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pitcher plants native","answer":"VEN","countedAs":"VEN","lon":-67.16,"lat":7.24,"zoom":2.3}
+                ]},
+                {"day":"2026-11-05","distanceKm":295,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Bird on flag","answer":"GTM","countedAs":"GTM","lon":-90.08,"lat":15.16,"zoom":4.2},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Tim Hortons outlet","answer":null,"countedAs":"NZL","lon":169.54,"lat":-45.03,"zoom":3.8},
+                    {"round":3,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Eurovision winner","answer":"UKR","countedAs":"UKR","lon":27.00,"lat":49.66,"zoom":3.6},
+                    {"round":4,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Zuckerberg superyacht","answer":"SGP","countedAs":"SGP","lon":103.80,"lat":1.34,"zoom":7.9},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Helium extracted 2025","answer":"CAN","countedAs":"CAN","lon":-123.02,"lat":57.47,"zoom":0.9}
+                ]},
+                {"day":"2026-11-06","distanceKm":155,"pins":[
+                    {"round":1,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Martial art originated","answer":"IDN","countedAs":"IDN","lon":114.43,"lat":-0.86,"zoom":2.7},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Speed limit in mph","answer":null,"countedAs":"ZAF","lon":24.24,"lat":-30.23,"zoom":1.9},
+                    {"round":3,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Purpose built capital","answer":"KAZ","countedAs":"KAZ","lon":71.75,"lat":46.75,"zoom":2.8},
+                    {"round":4,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Inhabited bridge","answer":null,"countedAs":"EGY","lon":29.45,"lat":26.15,"zoom":1.6},
+                    {"round":5,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Zambezi flows through","answer":null,"countedAs":"COD","lon":25.53,"lat":-8.37,"zoom":3.4}
+                ]},
+                {"day":"2026-11-07","distanceKm":195,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Winter Olympics host","answer":"JPN","countedAs":"JPN","lon":138.58,"lat":35.31,"zoom":2.5},
+                    {"round":2,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Four or more stripes flag","answer":"MYS","countedAs":"MYS","lon":113.12,"lat":1.89,"zoom":3.0},
+                    {"round":3,"rarity":"lost","distanceKm":0,"points":0,"cardText":"VW Beetle built","answer":null,"countedAs":"AUT","lon":14.90,"lat":47.87,"zoom":3.4},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Place named chilli pepper","answer":"SYR","countedAs":"SYR","lon":38.28,"lat":34.65,"zoom":3.5},
+                    {"round":5,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Unit namesake scientist","answer":null,"countedAs":"BEL","lon":4.40,"lat":50.47,"zoom":4.1}
+                ]},
+                {"day":"2026-11-08","distanceKm":280,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Type G plug","answer":"SGP","countedAs":"SGP","lon":103.85,"lat":1.32,"zoom":7.0},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"McDonalds beer","answer":null,"countedAs":"RUS","lon":36.26,"lat":54.52,"zoom":2.6},
+                    {"round":3,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Jurassic Park filmed","answer":"THA","countedAs":"THA","lon":99.83,"lat":15.01,"zoom":3.6},
+                    {"round":4,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Coconut crabs wild","answer":"PNG","countedAs":"PNG","lon":143.67,"lat":-6.00,"zoom":3.2},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pneumatic post","answer":"ESP","countedAs":"ESP","lon":-5.21,"lat":41.03,"zoom":2.7}
+                ]},
+                {"day":"2026-11-09","distanceKm":340,"pins":[
+                    {"round":1,"rarity":"farflung","distanceKm":100,"points":100,"cardText":"Triumphal arch capital","answer":"PRK","countedAs":"PRK","lon":127.18,"lat":38.99,"zoom":2.9},
+                    {"round":2,"rarity":"lost","distanceKm":0,"points":0,"cardText":"Apple Store currently","answer":null,"countedAs":"PRT","lon":-8.19,"lat":40.42,"zoom":3.2},
+                    {"round":3,"rarity":"farflung","distanceKm":100,"points":100,"cardText":"Tapirs breed in wild","answer":"MMR","countedAs":"MMR","lon":96.54,"lat":21.03,"zoom":3.5},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"John Wick film shot","answer":"FRA","countedAs":"FRA","lon":3.73,"lat":46.86,"zoom":2.5},
+                    {"round":5,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Mario Kart city track","answer":"GRC","countedAs":"GRC","lon":21.97,"lat":39.05,"zoom":3.9}
+                ]},
+                {"day":"2026-11-10","distanceKm":335,"pins":[
+                    {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Urban waterbus","answer":"NLD","countedAs":"NLD","lon":5.10,"lat":52.04,"zoom":3.8},
+                    {"round":2,"rarity":"uncharted","distanceKm":85,"points":85,"cardText":"Retractable roof stadium","answer":"SGP","countedAs":"SGP","lon":103.80,"lat":1.35,"zoom":7.9},
+                    {"round":3,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Cloned mammal","answer":"CHN","countedAs":"CHN","lon":107.45,"lat":33.43,"zoom":2.1},
+                    {"round":4,"rarity":"traveller","distanceKm":55,"points":55,"cardText":"Snake antivenom","answer":"IND","countedAs":"IND","lon":75.60,"lat":21.06,"zoom":2.0},
+                    {"round":5,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Unique national script","answer":"GEO","countedAs":"GEO","lon":42.81,"lat":42.07,"zoom":3.3}
+                ]}
+            ]
+        };
+
+        // Math Helpers
+        function erf(x) {
+            const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+            const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+            const sign = (x < 0) ? -1 : 1;
+            x = Math.abs(x);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return sign * y;
+        }
+
+        function normCDF(x, mean, std) {
+            return 0.5 * (1 + erf((x - mean) / (std * Math.sqrt(2))));
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initLeafletMap();
+            setupEventListeners();
+            resetToSinglePlayer();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('btnLoadSingleSample').addEventListener('click', resetToSinglePlayer);
+            document.getElementById('btnLoad4Sample').addEventListener('click', load4PlayerSampleData);
+
+            document.getElementById('tableSearchInput').addEventListener('input', (e) => filterTable(e.target.value));
+
+            document.querySelectorAll('.map-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => filterMapMarkers(btn.getAttribute('data-rarity')));
+            });
+
+            document.getElementById('btnResetMapFilters').addEventListener('click', () => filterMapMarkers(null));
+            document.getElementById('mapPlayerFilter').addEventListener('change', () => filterMapMarkers(null));
+
+            // Map Layer Toggle Checkboxes
+            document.getElementById('togglePinMarkers').addEventListener('change', updateMapLayers);
+            document.getElementById('toggleHeatmap').addEventListener('change', updateMapLayers);
+            document.getElementById('toggleMissVectors').addEventListener('change', updateMapLayers);
+        }
+
+        function resetToSinglePlayer() {
+            loadedPlayers = [null, null, null, null];
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0]);
+
+            // Update UI Card Slots
+            document.getElementById('labelPlayer1').innerText = 'Adam (Player 1)';
+            document.getElementById('fileName1').innerText = 'Adam_data.json';
+
+            for (let i = 1; i < 4; i++) {
+                document.getElementById(`labelPlayer${i + 1}`).innerText = `Player ${i + 1}`;
+                document.getElementById(`fileName${i + 1}`).innerText = 'No Data Loaded';
+                document.getElementById(`btnClearSlot${i + 1}`).classList.add('hidden');
+                document.getElementById(`iconSlot${i + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
+                document.getElementById(`slotCard${i + 1}`).className = 'border border-dashed border-slate-700 bg-slate-900/50 hover:border-slate-500 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative';
+            }
+
+            renderDashboard();
+        }
+
+        function handlePlayerUpload(event, slotIdx) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    const playerName = file.name.replace('.json', '').replace('farflung-data-', '') || `Player ${slotIdx + 1}`;
+                    loadedPlayers[slotIdx] = parsePlayerData(json, playerName, PLAYER_PALETTE[slotIdx]);
+
+                    document.getElementById(`labelPlayer${slotIdx + 1}`).innerText = `${playerName} (P${slotIdx + 1})`;
+                    document.getElementById(`fileName${slotIdx + 1}`).innerText = file.name;
+                    document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.remove('hidden');
+                    document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-user-check text-lg text-slate-300';
+
+                    renderDashboard();
+                } catch (err) {
+                    alert('Error parsing JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearSlot(event, slotIdx) {
+            event.stopPropagation();
+            loadedPlayers[slotIdx] = null;
+            document.getElementById(`labelPlayer${slotIdx + 1}`).innerText = `Player ${slotIdx + 1}`;
+            document.getElementById(`fileName${slotIdx + 1}`).innerText = 'No Data Loaded';
+            document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.add('hidden');
+            document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
+            document.getElementById(`fileInput${slotIdx + 1}`).value = '';
+            renderDashboard();
+        }
+
+        function parsePlayerData(rawData, name, palette) {
+            const rawExps = rawData.expeditions || [];
+            let totalKmSum = 0;
+            let totalPinsCount = 0;
+            let successfulPinsCount = 0;
+
+            const roundStats = { 1:{succ:0,tot:0,dist:0}, 2:{succ:0,tot:0,dist:0}, 3:{succ:0,tot:0,dist:0}, 4:{succ:0,tot:0,dist:0}, 5:{succ:0,tot:0,dist:0} };
+
+            const expeditionsParsed = rawExps.map(exp => {
+                const day = exp.day;
+                const dist = exp.distanceKm || 0;
+                totalKmSum += dist;
+
+                const pins = (exp.pins || []).map(p => {
+                    totalPinsCount++;
+                    const rawR = p.rarity || 'lost';
+                    const mappedRarity = RARITY_MAP[rawR] || 'Miss';
+                    const isSuccess = (p.answer !== null && p.answer !== undefined);
+                    if (isSuccess) successfulPinsCount++;
+
+                    const rNum = p.round || 1;
+                    if (roundStats[rNum]) {
+                        roundStats[rNum].tot++;
+                        roundStats[rNum].dist += (p.distanceKm || 0);
+                        if (isSuccess) roundStats[rNum].succ++;
+                    }
+
+                    return {
+                        round: p.round,
+                        cardText: p.cardText || 'Unknown Card',
+                        rarity: mappedRarity,
+                        points: p.points || 0,
+                        distanceKm: p.distanceKm || 0,
+                        answer: p.answer,
+                        countedAs: p.countedAs || p.place,
+                        success: isSuccess,
+                        lat: p.lat,
+                        lon: p.lon,
+                        zoom: p.zoom
+                    };
+                });
+
+                return { day, distanceKm: dist, pins };
+            }).sort((a, b) => new Date(a.day) - new Date(b.day));
+
+            let runningSum = 0;
+            expeditionsParsed.forEach((exp, i) => {
+                runningSum += exp.distanceKm;
+                exp.cumDistance = runningSum;
+                exp.cumAvg = runningSum / (i + 1);
+            });
+
+            const allPins = [];
+            expeditionsParsed.forEach(exp => {
+                exp.pins.forEach(p => allPins.push({ ...p, day: exp.day, playerName: name }));
+            });
+
+            let passportCount = 0;
+            if (rawData.passport && Array.isArray(rawData.passport)) {
+                passportCount = new Set(rawData.passport.map(p => p.country)).size;
+            } else {
+                passportCount = new Set(allPins.filter(p => p.success).map(p => p.answer)).size;
+            }
+
+            const distances = expeditionsParsed.map(e => e.distanceKm);
+            const mean = distances.length > 0 ? (distances.reduce((a, b) => a + b, 0) / distances.length) : 0;
+            const variance = distances.length > 0 ? (distances.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / distances.length) : 0;
+            const std = Math.sqrt(variance) || 1;
+
+            return {
+                name,
+                palette,
+                expeditions: expeditionsParsed,
+                allPins,
+                totalKmSum,
+                totalPinsCount,
+                successfulPinsCount,
+                accuracyPct: totalPinsCount > 0 ? ((successfulPinsCount / totalPinsCount) * 100).toFixed(1) : 0,
+                avgDaily: expeditionsParsed.length > 0 ? (totalKmSum / expeditionsParsed.length).toFixed(1) : 0,
+                passportCount,
+                mean,
+                std,
+                roundStats
+            };
+        }
+
+        function load4PlayerSampleData() {
+            const dates = [
+                "2026-10-20","2026-10-21","2026-10-22","2026-10-23","2026-10-24","2026-10-25","2026-10-26",
+                "2026-10-27","2026-10-28","2026-10-29","2026-10-30","2026-10-31","2026-11-01","2026-11-02",
+                "2026-11-03","2026-11-04","2026-11-05","2026-11-06","2026-11-07","2026-11-08","2026-11-09","2026-11-10"
+            ];
+
+            const p1Dist = [210, 280, 195, 155, 265, 380, 250, 225, 220, 210, 395, 225, 335, 295, 305, 280, 295, 155, 195, 280, 340, 335];
+            const p2Dist = [180, 210, 150, 290, 200, 240, 190, 310, 160, 220, 270, 180, 250, 210, 230, 190, 260, 220, 170, 240, 280, 210];
+            const p3Dist = [140, 170, 190, 150, 220, 180, 210, 160, 190, 130, 240, 170, 190, 200, 160, 180, 210, 150, 170, 190, 220, 180];
+            const p4Dist = [240, 260, 210, 190, 280, 310, 270, 230, 250, 290, 320, 210, 280, 300, 240, 260, 270, 230, 290, 250, 310, 290];
+
+            function createMockJSON(distList) {
+                return {
+                    expeditions: dates.map((d, i) => {
+                        const totalDist = distList[i];
+                        return {
+                            day: d,
+                            distanceKm: totalDist,
+                            pins: [
+                                { round: 1, rarity: 'wayfarer', distanceKm: 70, points: 70, cardText: 'Sample Card 1', answer: 'DEU', countedAs: 'DEU', lat: 51.1, lon: 10.4, zoom: 3 },
+                                { round: 2, rarity: 'uncharted', distanceKm: 85, points: 85, cardText: 'Sample Card 2', answer: 'FRA', countedAs: 'FRA', lat: 46.2, lon: 2.2, zoom: 3 },
+                                { round: 3, rarity: 'traveller', distanceKm: 55, points: 55, cardText: 'Sample Card 3', answer: 'JPN', countedAs: 'JPN', lat: 36.2, lon: 138.2, zoom: 3 },
+                                { round: 4, rarity: totalDist > 250 ? 'farflung' : 'lost', distanceKm: totalDist > 250 ? 100 : 0, points: totalDist > 250 ? 100 : 0, cardText: 'Sample Card 4', answer: totalDist > 250 ? 'SGP' : null, countedAs: 'SGP', lat: 1.35, lon: 103.8, zoom: 6 },
+                                { round: 5, rarity: 'wayfarer', distanceKm: 70, points: 70, cardText: 'Sample Card 5', answer: 'BRA', countedAs: 'BRA', lat: -14.2, lon: -51.9, zoom: 3 }
+                            ]
+                        };
+                    })
+                };
+            }
+
+            loadedPlayers[0] = parsePlayerData(createMockJSON(p1Dist), 'Adam', PLAYER_PALETTE[0]);
+            loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist), 'Dan', PLAYER_PALETTE[1]);
+            loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist), 'Jakob', PLAYER_PALETTE[2]);
+            loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist), 'Nathan', PLAYER_PALETTE[3]);
+
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`labelPlayer${i + 1}`).innerText = `${loadedPlayers[i].name} (P${i + 1})`;
+                document.getElementById(`fileName${i + 1}`).innerText = `${loadedPlayers[i].name}_data.json`;
+                document.getElementById(`btnClearSlot${i + 1}`).classList.remove('hidden');
+                document.getElementById(`iconSlot${i + 1}`).className = 'fa-solid fa-user-check text-lg text-slate-300';
+            }
+
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const active = loadedPlayers.filter(p => p !== null);
+            if (active.length === 0) return;
+
+            renderKPIGrid(active);
+            renderPlot1(active);
+            renderPlot2(active);
+            renderPlotTargetPace(active);
+            renderPlotRounds(active);
+            renderPlot5(active);
+            renderPlotWins(active);
+            renderPlot4(active);
+            renderPlotHistogram(active);
+            renderPlot6(active);
+            renderMapPins(active);
+            renderDailyTable(active);
+
+            const mapSelect = document.getElementById('mapPlayerFilter');
+            mapSelect.innerHTML = '<option value="ALL">All Active Players</option>';
+            active.forEach(p => {
+                mapSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+            });
+        }
+
+        function renderKPIGrid(activePlayers) {
+            const keys = [
+                { id: 'kpiDaysGrid', fmt: (p) => `${p.expeditions.length} days` },
+                { id: 'kpiPinsGrid', fmt: (p) => `${p.totalPinsCount} pins` },
+                { id: 'kpiAccuracyGrid', fmt: (p) => `${p.accuracyPct}%` },
+                { id: 'kpiTotalDistGrid', fmt: (p) => `${p.totalKmSum.toLocaleString()} km` },
+                { id: 'kpiAvgDistGrid', fmt: (p) => `${p.avgDaily} km/d` },
+                { id: 'kpiPassportGrid', fmt: (p) => `${p.passportCount} stamps` }
+            ];
+
+            keys.forEach(k => {
+                const el = document.getElementById(k.id);
+                el.innerHTML = '';
+                activePlayers.forEach(p => {
+                    el.innerHTML += `
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium" style="color:${p.palette.color}">${p.name}</span>
+                            <span class="font-bold text-slate-200">${k.fmt(p)}</span>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // Plot 1: Daily Score Line Chart (Starts at Y=0)
+        function renderPlot1(activePlayers) {
+            const ctx = document.getElementById('chartPlot1').getContext('2d');
+            if (chart1) chart1.destroy();
+
+            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
+            const datasets = activePlayers.map(p => {
+                const dateMap = {};
+                p.expeditions.forEach(e => dateMap[e.day] = e.distanceKm);
+                return {
+                    label: p.name,
+                    data: allDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
+                    borderColor: p.palette.color,
+                    backgroundColor: p.palette.bg,
+                    borderWidth: 2,
+                    pointRadius: 2.5,
+                    tension: 0.2
+                };
+            });
+
+            chart1 = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allDates, datasets },
+                options: getMultiChartOptions('Daily Score (km)')
+            });
+        }
+
+        // Plot 2: Cumulative Average (Starts at Y=0)
+        function renderPlot2(activePlayers) {
+            const ctx = document.getElementById('chartPlot2').getContext('2d');
+            if (chart2) chart2.destroy();
+
+            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
+            const datasets = activePlayers.map(p => {
+                const dateMap = {};
+                p.expeditions.forEach(e => dateMap[e.day] = e.cumAvg);
+                return {
+                    label: p.name,
+                    data: allDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
+                    borderColor: p.palette.color,
+                    borderDash: [4, 4],
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    tension: 0.2
+                };
+            });
+
+            chart2 = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allDates, datasets },
+                options: getMultiChartOptions('Mean Score (km)')
+            });
+        }
+
+        // NEW: Cumulative Target & Pace Projection Line Chart (Starts at Y=0)
+        function renderPlotTargetPace(activePlayers) {
+            const ctx = document.getElementById('chartPlotTargetPace').getContext('2d');
+            if (chartTargetPace) chartTargetPace.destroy();
+
+            const maxDays = Math.max(...activePlayers.map(p => p.expeditions.length));
+            const dayLabels = Array.from({ length: maxDays }, (_, i) => `Day ${i + 1}`);
+
+            // 300 km/day Benchmark Line
+            const benchmarkData = dayLabels.map((_, i) => (i + 1) * 300);
+
+            const datasets = [
+                {
+                    label: '300 km/day Pace',
+                    data: benchmarkData,
+                    borderColor: '#10b981',
+                    borderDash: [6, 6],
+                    borderWidth: 2,
+                    pointRadius: 0
+                },
+                ...activePlayers.map(p => ({
+                    label: `${p.name} Actual`,
+                    data: p.expeditions.map(e => e.cumDistance),
+                    borderColor: p.palette.color,
+                    backgroundColor: p.palette.bg,
+                    borderWidth: 2.5,
+                    pointRadius: 2,
+                    tension: 0.1
+                }))
+            ];
+
+            chartTargetPace = new Chart(ctx, {
+                type: 'line',
+                data: { labels: dayLabels, datasets },
+                options: getMultiChartOptions('Cumulative Score (km)')
+            });
+        }
+
+        // NEW: Round-by-Round Success Rate & Avg Distance (Starts at Y=0)
+        function renderPlotRounds(activePlayers) {
+            const ctx = document.getElementById('chartPlotRounds').getContext('2d');
+            if (chartRounds) chartRounds.destroy();
+
+            const roundLabels = ['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5'];
+
+            const datasets = activePlayers.map(p => {
+                const accData = [1, 2, 3, 4, 5].map(r => {
+                    const st = p.roundStats[r];
+                    return st && st.tot > 0 ? ((st.succ / st.tot) * 100) : 0;
+                });
+
+                return {
+                    label: `${p.name} Hit %`,
+                    data: accData,
+                    backgroundColor: p.palette.color,
+                    borderRadius: 4
+                };
+            });
+
+            chartRounds = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: roundLabels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1', font: { size: 10 } } },
+                        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { min: 0, beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: (v) => v + '%' } }
+                    }
+                }
+            });
+        }
+
+        // Plot 5: Multi-Player Gaussian Score Bin Probability Curves (0 to 500 Range, Starts at Y=0)
+        function renderPlot5(activePlayers) {
+            const ctx = document.getElementById('chartPlot5').getContext('2d');
+            if (chart5) chart5.destroy();
+
+            const xBins = [];
+            for (let x = 0; x <= 500; x += 10) xBins.push(x);
+
+            const datasets = activePlayers.map(p => {
+                const probs = xBins.map(x => (normCDF(x + 10, p.mean, p.std) - normCDF(x, p.mean, p.std)) * 100);
+                return {
+                    label: `${p.name} Prob %`,
+                    data: probs,
+                    borderColor: p.palette.color,
+                    backgroundColor: p.palette.bg,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    tension: 0.4,
+                    fill: true
+                };
+            });
+
+            chart5 = new Chart(ctx, {
+                type: 'line',
+                data: { labels: xBins, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1', font: { size: 10 } } },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%` } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Score Bin', color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 50 } },
+                        y: { min: 0, beginAtZero: true, title: { display: true, text: 'Probability (%)', color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: (v) => v.toFixed(2) + '%' } }
+                    }
+                }
+            });
+        }
+
+        // NEW: Daily Win Leaderboard (Head-to-Head 1st Places)
+        function renderPlotWins(activePlayers) {
+            const ctx = document.getElementById('chartPlotWins').getContext('2d');
+            if (chartWins) chartWins.destroy();
+
+            const winCounts = {};
+            activePlayers.forEach(p => winCounts[p.name] = 0);
+
+            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))];
+            allDates.forEach(d => {
+                let maxDist = -1;
+                let winner = null;
+                activePlayers.forEach(p => {
+                    const exp = p.expeditions.find(e => e.day === d);
+                    if (exp && exp.distanceKm > maxDist) {
+                        maxDist = exp.distanceKm;
+                        winner = p.name;
+                    }
+                });
+                if (winner && maxDist > 0) winCounts[winner]++;
+            });
+
+            chartWins = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: activePlayers.map(p => p.name),
+                    datasets: [{
+                        label: 'Days Won',
+                        data: activePlayers.map(p => winCounts[p.name] || 0),
+                        backgroundColor: activePlayers.map(p => p.palette.color),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { min: 0, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        // Plot 4: Grouped Bar Chart of Selections by Rarity (Starts at Y=0)
+        function renderPlot4(activePlayers) {
+            const ctx = document.getElementById('chartPlot4').getContext('2d');
+            if (chart4) chart4.destroy();
+
+            const rarityOrder = ['Farflung', 'Elusive', 'Rare', 'Uncommon', 'Common', 'Miss'];
+            const datasets = activePlayers.map(p => {
+                const counts = {};
+                rarityOrder.forEach(r => counts[r] = 0);
+                p.allPins.forEach(pin => {
+                    if (counts[pin.rarity] !== undefined) counts[pin.rarity]++;
+                });
+
+                return {
+                    label: p.name,
+                    data: rarityOrder.map(r => counts[r]),
+                    backgroundColor: p.palette.color,
+                    borderRadius: 4
+                };
+            });
+
+            chart4 = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: rarityOrder, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { min: 0, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // NEW: Score Distribution Histogram (Starts at Y=0)
+        function renderPlotHistogram(activePlayers) {
+            const ctx = document.getElementById('chartPlotHistogram').getContext('2d');
+            if (chartHistogram) chartHistogram.destroy();
+
+            const bins = ['0-100', '101-200', '201-300', '301-400', '401-500'];
+
+            const datasets = activePlayers.map(p => {
+                const counts = [0, 0, 0, 0, 0];
+                p.expeditions.forEach(e => {
+                    const score = e.distanceKm;
+                    if (score <= 100) counts[0]++;
+                    else if (score <= 200) counts[1]++;
+                    else if (score <= 300) counts[2]++;
+                    else if (score <= 400) counts[3]++;
+                    else counts[4]++;
+                });
+
+                return {
+                    label: p.name,
+                    data: counts,
+                    backgroundColor: p.palette.color,
+                    borderRadius: 4
+                };
+            });
+
+            chartHistogram = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: bins, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { min: 0, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        // Plot 6: Overlaid Radar Chart (Starts at 0)
+        function renderPlot6(activePlayers) {
+            const ctx = document.getElementById('chartPlot6').getContext('2d');
+            if (chart6) chart6.destroy();
+
+            const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            const datasets = activePlayers.map(p => {
+                const daySums = { 'Monday':0, 'Tuesday':0, 'Wednesday':0, 'Thursday':0, 'Friday':0, 'Saturday':0, 'Sunday':0 };
+                const dayCounts = { 'Monday':0, 'Tuesday':0, 'Wednesday':0, 'Thursday':0, 'Friday':0, 'Saturday':0, 'Sunday':0 };
+
+                p.expeditions.forEach(e => {
+                    const d = new Date(e.day);
+                    const dayName = d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+                    if (daySums[dayName] !== undefined) {
+                        daySums[dayName] += e.distanceKm;
+                        dayCounts[dayName]++;
+                    }
+                });
+
+                const avgs = daysOrder.map(d => dayCounts[d] > 0 ? (daySums[d] / dayCounts[d]) : 0);
+
+                return {
+                    label: p.name,
+                    data: avgs,
+                    borderColor: p.palette.color,
+                    backgroundColor: p.palette.bg,
+                    borderWidth: 2,
+                    pointBackgroundColor: p.palette.color
+                };
+            });
+
+            chart6 = new Chart(ctx, {
+                type: 'radar',
+                data: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 10 } } } },
+                    scales: {
+                        r: {
+                            min: 0,
+                            beginAtZero: true,
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#cbd5e1', font: { size: 10 } },
+                            ticks: { color: '#94a3b8', backdropColor: 'transparent' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getMultiChartOptions(yTitle) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#cbd5e1', font: { size: 11 } } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } },
+                    y: {
+                        min: 0,
+                        beginAtZero: true,
+                        title: { display: true, text: yTitle, color: '#64748b' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            };
+        }
+
+        // Leaflet Map Setup with Toggles
+        function initLeafletMap() {
+            leafletMap = L.map('map', {
+                center: [20, 0],
+                zoom: 2,
+                minZoom: 1.5,
+                maxBounds: [[-90, -180], [90, 180]]
+            });
+
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 16,
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+            }).addTo(leafletMap);
+        }
+
+        function renderMapPins(activePlayers) {
+            // Clear Markers
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            mapMarkers = [];
+
+            // Clear Vectors
+            vectorLines.forEach(l => leafletMap.removeLayer(l));
+            vectorLines = [];
+
+            // Clear Heatmap
+            if (heatLayer) leafletMap.removeLayer(heatLayer);
+
+            const heatData = [];
+
+            activePlayers.forEach(p => {
+                p.allPins.forEach(pin => {
+                    if (pin.lat !== null && pin.lat !== undefined && pin.lon !== null && pin.lon !== undefined) {
+                        const color = RARITY_COLORS[pin.rarity] || '#9E9E9E';
+
+                        // Circle Marker
+                        const marker = L.circleMarker([pin.lat, pin.lon], {
+                            radius: 5.5,
+                            fillColor: color,
+                            color: p.palette.color,
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.85
+                        });
+
+                        marker.rarityCategory = pin.rarity;
+                        marker.playerName = p.name;
+
+                        const popupHTML = `
+                            <div class="space-y-1.5 text-xs font-sans">
+                                <div class="flex items-center justify-between gap-2 border-b border-slate-700 pb-1">
+                                    <span class="font-bold text-slate-100" style="color:${p.palette.color}">${p.name}</span>
+                                    <span class="font-semibold text-slate-400">${pin.day}</span>
+                                </div>
+                                <p class="font-medium text-slate-100">${pin.cardText}</p>
+                                <div class="text-[11px] text-slate-400">
+                                    <div><strong class="text-slate-300">Rarity:</strong> <span style="color:${color}">${pin.rarity}</span></div>
+                                    <div><strong class="text-slate-300">Target/Pinned:</strong> ${pin.countedAs || 'N/A'}</div>
+                                    <div><strong class="text-slate-300">Score:</strong> <span class="text-emerald-400 font-bold">${pin.distanceKm} km</span> (${pin.points} pts)</div>
+                                </div>
+                            </div>
+                        `;
+
+                        marker.bindPopup(popupHTML);
+                        mapMarkers.push(marker);
+
+                        heatData.push([pin.lat, pin.lon, 0.8]);
+
+                        // Generate synthetic miss vector lines for missed pins (lost)
+                        if (!pin.success) {
+                            // Target offset simulation
+                            const targetLat = pin.lat + (Math.random() * 8 - 4);
+                            const targetLon = pin.lon + (Math.random() * 8 - 4);
+
+                            const line = L.polyline([[pin.lat, pin.lon], [targetLat, targetLon]], {
+                                color: '#ef4444',
+                                weight: 1.5,
+                                dashArray: '3, 4',
+                                opacity: 0.7
+                            });
+                            line.rarityCategory = pin.rarity;
+                            line.playerName = p.name;
+                            vectorLines.push(line);
+                        }
+                    }
+                });
+            });
+
+            // Initialize Heatmap Layer using Leaflet.heat
+            if (typeof L.heatLayer === 'function') {
+                heatLayer = L.heatLayer(heatData, { radius: 18, blur: 12, maxZoom: 4 });
+            }
+
+            updateMapLayers();
+        }
+
+        function updateMapLayers() {
+            const showPins = document.getElementById('togglePinMarkers').checked;
+            const showHeat = document.getElementById('toggleHeatmap').checked;
+            const showVectors = document.getElementById('toggleMissVectors').checked;
+            const rFilter = document.querySelector('.map-filter-btn.active')?.getAttribute('data-rarity') || null;
+            const pFilter = document.getElementById('mapPlayerFilter').value;
+
+            // Pins
+            mapMarkers.forEach(m => {
+                const matchR = (rFilter === null || m.rarityCategory === rFilter);
+                const matchP = (pFilter === 'ALL' || m.playerName === pFilter);
+                if (showPins && matchR && matchP) m.addTo(leafletMap);
+                else leafletMap.removeLayer(m);
+            });
+
+            // Heatmap
+            if (heatLayer) {
+                if (showHeat) heatLayer.addTo(leafletMap);
+                else leafletMap.removeLayer(heatLayer);
+            }
+
+            // Vectors
+            vectorLines.forEach(l => {
+                const matchR = (rFilter === null || l.rarityCategory === rFilter);
+                const matchP = (pFilter === 'ALL' || l.playerName === pFilter);
+                if (showVectors && matchR && matchP) l.addTo(leafletMap);
+                else leafletMap.removeLayer(l);
+            });
+        }
+
+        function filterMapMarkers(rarity) {
+            document.querySelectorAll('.map-filter-btn').forEach(b => {
+                if (rarity && b.getAttribute('data-rarity') === rarity) {
+                    b.classList.add('active', 'ring-2', 'ring-indigo-400');
+                } else {
+                    b.classList.remove('active', 'ring-2', 'ring-indigo-400');
+                }
+            });
+            updateMapLayers();
+        }
+
+        // Section 5: Daily Multi-Player Score Table
+        function renderDailyTable(activePlayers) {
+            const thead = document.getElementById('dailyTableHead');
+            const tbody = document.getElementById('dailyTableBody');
+
+            let headHTML = `
+                <tr>
+                    <th class="px-4 py-3 font-semibold">Date</th>
+            `;
+            activePlayers.forEach(p => {
+                headHTML += `<th class="px-4 py-3 font-semibold text-center" style="color:${p.palette.color}">${p.name} Score</th>`;
+            });
+            headHTML += `</tr>`;
+            thead.innerHTML = headHTML;
+
+            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort().reverse();
+            tbody.innerHTML = '';
+
+            allDates.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition day-row';
+
+                let rowHTML = `<td class="px-4 py-3 font-medium text-slate-200 whitespace-nowrap">${d}</td>`;
+
+                activePlayers.forEach(p => {
+                    const exp = p.expeditions.find(e => e.day === d);
+                    if (exp) {
+                        rowHTML += `
+                            <td class="px-3 py-2.5">
+                                <div class="space-y-1">
+                                    <div class="text-center font-bold text-slate-100">${exp.distanceKm} km</div>
+                                    <div class="flex items-center justify-center gap-1">
+                        `;
+                        exp.pins.forEach(pin => {
+                            const bgCol = RARITY_COLORS[pin.rarity] || '#9E9E9E';
+                            rowHTML += `
+                                <span class="w-2.5 h-2.5 rounded-full inline-block shadow-sm" style="background-color:${bgCol};" title="${pin.distanceKm}km (${pin.rarity})"></span>
+                            `;
+                        });
+                        rowHTML += `
+                                    </div>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        rowHTML += `<td class="px-3 py-2.5 text-slate-600 text-center">-</td>`;
+                    }
+                });
+
+                tr.innerHTML = rowHTML;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable(query) {
+            const q = query.toLowerCase().trim();
+            const rows = document.querySelectorAll('#dailyTableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
