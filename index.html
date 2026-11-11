@@ -49,6 +49,10 @@
             border: 1px solid #334155;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: #020617 !important; color: #f8fafc !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-12">
@@ -66,7 +70,11 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 no-print">
+                <button onclick="window.print()" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Download PDF Report</span>
+                </button>
                 <button id="btnLoadSingleSample" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg transition flex items-center space-x-2">
                     <i class="fa-solid fa-user"></i>
                     <span>Reset to Player 1 Only</span>
@@ -81,16 +89,26 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
 
-        <!-- 4-Player File Upload Slots -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div class="flex items-center justify-between">
+        <!-- Controls Bar: Upload Slots & Shared Days Filter -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4 no-print">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
                     <i class="fa-solid fa-folder-open text-indigo-400"></i>
                     <span>Player JSON Data Slots (Player 1 Pre-loaded; Slots 2-4 Empty)</span>
                 </h2>
-                <span class="text-xs text-slate-400">Upload JSON exports to compare additional players</span>
+
+                <!-- Shared Completed Days Toggle Switch -->
+                <div class="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <span class="text-xs font-medium text-slate-300">Compare Mode:</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="sharedDaysToggle" class="sr-only peer" onchange="renderDashboard()">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                    <span id="toggleLabel" class="text-xs font-semibold text-emerald-400">All Days</span>
+                </div>
             </div>
 
+            <!-- Player Slots Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Slot 1 (Default Preloaded) -->
                 <div class="border border-indigo-500/50 bg-indigo-500/10 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative group" onclick="document.getElementById('fileInput1').click()">
@@ -149,6 +167,11 @@
             </div>
         </div>
 
+        <!-- Filter Active Banner -->
+        <div id="filterBanner" class="hidden bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
+            <span><i class="fa-solid fa-filter mr-1.5"></i> <strong>Shared Days Filter Active:</strong> Displaying stats restricted to <span id="sharedDayCount" class="font-bold text-white">0</span> calendar dates completed by all active players.</span>
+        </div>
+
         <!-- Dynamic Head-to-Head KPI Summary Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
@@ -202,33 +225,48 @@
 
         <!-- Section 1: Multi-Player Expedition Score Trends (Row 1) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart1">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Expedition Score (km)</h3>
-                    <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Daily</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Daily</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot1"></canvas>
                 </div>
             </div>
 
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart2">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Cumulative Average Distance</h3>
-                    <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Trend</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Trend</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot2"></canvas>
                 </div>
             </div>
 
             <!-- Target & Pace Projection Line -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartTargetPace">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Pace vs. 300km/Day Target</h3>
-                    <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Pace Tracker</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Pace Tracker</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotTargetPace"></canvas>
                 </div>
             </div>
@@ -236,34 +274,49 @@
 
         <!-- Section 2: Advanced Statistical Breakdowns (Row 2) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRounds">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Round-by-Round Success Rate</h3>
-                    <span class="text-xs text-slate-400">Rounds 1 to 5</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">Rounds 1 to 5</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotRounds"></canvas>
                 </div>
             </div>
 
             <!-- Score Bin Probability Curve -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart5">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Score Bin Probability</h3>
-                    <span class="text-xs text-slate-400">10-Pt Windows (0-500)</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">10-Pt Windows (0-500)</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot5"></canvas>
                 </div>
             </div>
 
-            <!-- Daily Win Leaderboard (Visible when >1 player loaded) -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <!-- Daily Win Leaderboard -->
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartWins">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Daily Lead / 1st Place Wins</h3>
-                    <span class="text-xs text-amber-400 font-medium"><i class="fa-solid fa-trophy"></i> Leaderboard</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-amber-400 font-medium"><i class="fa-solid fa-trophy"></i> Leaderboard</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotWins"></canvas>
                 </div>
             </div>
@@ -271,45 +324,60 @@
 
         <!-- Section 3: Distribution & Radar Analytics (Row 3) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Selections by Rarity</h3>
-                    <span class="text-xs text-slate-400">Grouped Breakdown</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">Grouped Breakdown</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot4"></canvas>
                 </div>
             </div>
 
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartHistogram">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Score Distribution Histogram</h3>
-                    <span class="text-xs text-slate-400">Score Frequencies</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">Score Frequencies</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotHistogram"></canvas>
                 </div>
             </div>
 
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart6">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-200">Daily Breakdown Radar</h3>
-                    <span class="text-xs text-slate-400">Mon - Sun Comparison</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">Mon - Sun Comparison</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="h-64 relative">
+                <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot6"></canvas>
                 </div>
             </div>
         </div>
 
         <!-- Section 4: Interactive Map with Layer Toggles (Row 4) -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="map">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
                         <span>Global Pin Map Coordinates</span>
                     </h3>
-                    <p class="text-xs text-slate-400">Toggle map overlays: Pin Markers, Density Heatmap, and Miss Vector Lines.</p>
+                    <p class="text-xs text-slate-400">Toggle map overlays: Pin Markers and Density Heatmap.</p>
                 </div>
 
                 <!-- Layer Toggle Controls -->
@@ -323,11 +391,6 @@
                         <label class="flex items-center space-x-1.5 cursor-pointer">
                             <input type="checkbox" id="toggleHeatmap" class="rounded border-slate-700 text-rose-600 focus:ring-0">
                             <span class="text-slate-300">Heatmap</span>
-                        </label>
-                        <span class="text-slate-700">|</span>
-                        <label class="flex items-center space-x-1.5 cursor-pointer">
-                            <input type="checkbox" id="toggleMissVectors" class="rounded border-slate-700 text-amber-600 focus:ring-0">
-                            <span class="text-slate-300">Miss Vectors</span>
                         </label>
                     </div>
 
@@ -344,11 +407,17 @@
                         <button class="map-filter-btn px-2 py-0.5 rounded-full border border-blue-500/50 bg-blue-500/10 text-blue-300 text-[11px]" data-rarity="Miss">Miss</button>
                         <button id="btnResetMapFilters" class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-400 text-[11px]">Reset</button>
                     </div>
+
+                    <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition ml-2" title="Expand View">
+                        <i class="fa-solid fa-expand expand-icon"></i>
+                    </button>
                 </div>
             </div>
 
             <!-- Leaflet Container -->
-            <div id="map" class="h-96 w-full rounded-xl border border-slate-800"></div>
+            <div class="chart-container h-96 w-full relative">
+                <div id="map" class="h-full w-full rounded-xl border border-slate-800"></div>
+            </div>
         </div>
 
         <!-- Section 5: Daily Pin Score Table (Row 5) -->
@@ -376,6 +445,9 @@
         </div>
 
     </main>
+
+    <!-- Modal overlay backdrop for expanded plots -->
+    <div id="modalBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 hidden transition-opacity duration-300" onclick="closeExpandedModal()"></div>
 
     <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 text-center text-xs text-slate-600">
         <p>Farflung Interactive Multi-Player Analytics Dashboard &bull; Built with Chart.js & Leaflet.js</p>
@@ -409,11 +481,11 @@
         ];
 
         let loadedPlayers = [null, null, null, null];
-        let chart1, chart2, chart3, chart4, chart5, chart6, chartTargetPace, chartRounds, chartHistogram, chartWins;
+        let chartInstances = {};
         let leafletMap = null;
         let mapMarkers = [];
         let heatLayer = null;
-        let vectorLines = [];
+        let expandedCard = null;
 
         // Sample Data for Player 1 (Adam)
         const sampleFarflungData = {
@@ -612,7 +684,79 @@
             // Map Layer Toggle Checkboxes
             document.getElementById('togglePinMarkers').addEventListener('change', updateMapLayers);
             document.getElementById('toggleHeatmap').addEventListener('change', updateMapLayers);
-            document.getElementById('toggleMissVectors').addEventListener('change', updateMapLayers);
+        }
+
+        function toggleExpandCard(button) {
+            const card = button.closest('.chart-card');
+            if (!card) return;
+
+            if (expandedCard === card) {
+                closeExpandedModal();
+            } else {
+                if (expandedCard) closeExpandedModal();
+
+                expandedCard = card;
+                const backdrop = document.getElementById('modalBackdrop');
+                backdrop.classList.remove('hidden');
+
+                // Force Card into centered modal layout (80vw width, 75vh height)
+                card.classList.add('fixed', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-[80vw]', 'max-w-5xl', 'h-[75vh]', 'max-h-[75vh]', 'z-50', 'shadow-2xl', 'flex', 'flex-col', 'overflow-hidden', 'ring-1', 'ring-slate-700');
+                
+                const container = card.querySelector('.chart-container');
+                if (container) {
+                    container.classList.remove('h-64', 'h-96');
+                    container.classList.add('flex-1', 'w-full', 'min-h-0');
+                }
+
+                const icon = button.querySelector('.expand-icon');
+                if (icon) {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                }
+
+                const chartId = card.getAttribute('data-chart-id');
+                if (chartId === 'map' && leafletMap) {
+                    setTimeout(() => leafletMap.invalidateSize(), 300);
+                } else if (chartId && chartInstances[chartId]) {
+                    setTimeout(() => chartInstances[chartId].resize(), 300);
+                }
+            }
+        }
+
+        function closeExpandedModal() {
+            if (!expandedCard) return;
+
+            const card = expandedCard;
+            expandedCard = null;
+
+            const backdrop = document.getElementById('modalBackdrop');
+            backdrop.classList.add('hidden');
+
+            card.classList.remove('fixed', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-[80vw]', 'max-w-5xl', 'h-[75vh]', 'max-h-[75vh]', 'z-50', 'shadow-2xl', 'flex', 'flex-col', 'overflow-hidden', 'ring-1', 'ring-slate-700');
+
+            const container = card.querySelector('.chart-container');
+            const chartId = card.getAttribute('data-chart-id');
+
+            if (container) {
+                container.classList.remove('flex-1', 'w-full', 'min-h-0');
+                if (chartId === 'map') {
+                    container.classList.add('h-96');
+                } else {
+                    container.classList.add('h-64');
+                }
+            }
+
+            const button = card.querySelector('.expand-icon');
+            if (button) {
+                button.classList.remove('fa-compress');
+                button.classList.add('fa-expand');
+            }
+
+            if (chartId === 'map' && leafletMap) {
+                setTimeout(() => leafletMap.invalidateSize(), 300);
+            } else if (chartId && chartInstances[chartId]) {
+                setTimeout(() => chartInstances[chartId].resize(), 300);
+            }
         }
 
         function resetToSinglePlayer() {
@@ -667,6 +811,30 @@
             document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
             document.getElementById(`fileInput${slotIdx + 1}`).value = '';
             renderDashboard();
+        }
+
+        // Shared Completed Days Filter Helper
+        function getActiveFilterContext(activePlayers) {
+            const isSharedOnly = document.getElementById('sharedDaysToggle').checked;
+            document.getElementById('toggleLabel').innerText = isSharedOnly ? "Shared Days Only" : "All Days";
+
+            let filterDates = [];
+            if (isSharedOnly) {
+                const dateSets = activePlayers.map(p => new Set(p.expeditions.map(e => e.day)));
+                filterDates = [...dateSets[0]].filter(d => dateSets.every(s => s.has(d))).sort();
+            } else {
+                filterDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
+            }
+
+            const banner = document.getElementById('filterBanner');
+            if (isSharedOnly) {
+                banner.classList.remove('hidden');
+                document.getElementById('sharedDayCount').innerText = filterDates.length;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            return { isSharedOnly, filterDates };
         }
 
         function parsePlayerData(rawData, name, palette) {
@@ -805,18 +973,20 @@
             const active = loadedPlayers.filter(p => p !== null);
             if (active.length === 0) return;
 
-            renderKPIGrid(active);
-            renderPlot1(active);
-            renderPlot2(active);
-            renderPlotTargetPace(active);
-            renderPlotRounds(active);
-            renderPlot5(active);
-            renderPlotWins(active);
-            renderPlot4(active);
-            renderPlotHistogram(active);
-            renderPlot6(active);
-            renderMapPins(active);
-            renderDailyTable(active);
+            const { filterDates } = getActiveFilterContext(active);
+
+            renderKPIGrid(active, filterDates);
+            renderPlot1(active, filterDates);
+            renderPlot2(active, filterDates);
+            renderPlotTargetPace(active, filterDates);
+            renderPlotRounds(active, filterDates);
+            renderPlot5(active, filterDates);
+            renderPlotWins(active, filterDates);
+            renderPlot4(active, filterDates);
+            renderPlotHistogram(active, filterDates);
+            renderPlot6(active, filterDates);
+            renderMapPins(active, filterDates);
+            renderDailyTable(active, filterDates);
 
             const mapSelect = document.getElementById('mapPlayerFilter');
             mapSelect.innerHTML = '<option value="ALL">All Active Players</option>';
@@ -825,13 +995,33 @@
             });
         }
 
-        function renderKPIGrid(activePlayers) {
+        function renderKPIGrid(activePlayers, filterDates) {
             const keys = [
-                { id: 'kpiDaysGrid', fmt: (p) => `${p.expeditions.length} days` },
-                { id: 'kpiPinsGrid', fmt: (p) => `${p.totalPinsCount} pins` },
-                { id: 'kpiAccuracyGrid', fmt: (p) => `${p.accuracyPct}%` },
-                { id: 'kpiTotalDistGrid', fmt: (p) => `${p.totalKmSum.toLocaleString()} km` },
-                { id: 'kpiAvgDistGrid', fmt: (p) => `${p.avgDaily} km/d` },
+                { id: 'kpiDaysGrid', fmt: (p) => {
+                    const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                    return `${exps.length} days`;
+                }},
+                { id: 'kpiPinsGrid', fmt: (p) => {
+                    const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                    const pinsCount = exps.reduce((acc, e) => acc + (e.pins ? e.pins.length : 0), 0);
+                    return `${pinsCount} pins`;
+                }},
+                { id: 'kpiAccuracyGrid', fmt: (p) => {
+                    const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                    const allPins = exps.flatMap(e => e.pins || []);
+                    const succ = allPins.filter(pin => pin.success).length;
+                    return allPins.length > 0 ? `${((succ / allPins.length) * 100).toFixed(1)}%` : '0%';
+                }},
+                { id: 'kpiTotalDistGrid', fmt: (p) => {
+                    const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                    const sum = exps.reduce((acc, e) => acc + e.distanceKm, 0);
+                    return `${sum.toLocaleString()} km`;
+                }},
+                { id: 'kpiAvgDistGrid', fmt: (p) => {
+                    const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                    const sum = exps.reduce((acc, e) => acc + e.distanceKm, 0);
+                    return exps.length > 0 ? `${(sum / exps.length).toFixed(1)} km/d` : '0 km/d';
+                }},
                 { id: 'kpiPassportGrid', fmt: (p) => `${p.passportCount} stamps` }
             ];
 
@@ -850,17 +1040,16 @@
         }
 
         // Plot 1: Daily Score Line Chart (Starts at Y=0)
-        function renderPlot1(activePlayers) {
+        function renderPlot1(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot1').getContext('2d');
-            if (chart1) chart1.destroy();
+            if (chartInstances['chart1']) chartInstances['chart1'].destroy();
 
-            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
             const datasets = activePlayers.map(p => {
                 const dateMap = {};
-                p.expeditions.forEach(e => dateMap[e.day] = e.distanceKm);
+                p.expeditions.filter(e => filterDates.includes(e.day)).forEach(e => dateMap[e.day] = e.distanceKm);
                 return {
                     label: p.name,
-                    data: allDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
+                    data: filterDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
                     borderColor: p.palette.color,
                     backgroundColor: p.palette.bg,
                     borderWidth: 2,
@@ -869,25 +1058,30 @@
                 };
             });
 
-            chart1 = new Chart(ctx, {
+            chartInstances['chart1'] = new Chart(ctx, {
                 type: 'line',
-                data: { labels: allDates, datasets },
+                data: { labels: filterDates, datasets },
                 options: getMultiChartOptions('Daily Score (km)')
             });
         }
 
         // Plot 2: Cumulative Average (Starts at Y=0)
-        function renderPlot2(activePlayers) {
+        function renderPlot2(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot2').getContext('2d');
-            if (chart2) chart2.destroy();
+            if (chartInstances['chart2']) chartInstances['chart2'].destroy();
 
-            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
             const datasets = activePlayers.map(p => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                let runningSum = 0;
                 const dateMap = {};
-                p.expeditions.forEach(e => dateMap[e.day] = e.cumAvg);
+                exps.forEach((e, idx) => {
+                    runningSum += e.distanceKm;
+                    dateMap[e.day] = runningSum / (idx + 1);
+                });
+
                 return {
                     label: p.name,
-                    data: allDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
+                    data: filterDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
                     borderColor: p.palette.color,
                     borderDash: [4, 4],
                     borderWidth: 2,
@@ -896,23 +1090,20 @@
                 };
             });
 
-            chart2 = new Chart(ctx, {
+            chartInstances['chart2'] = new Chart(ctx, {
                 type: 'line',
-                data: { labels: allDates, datasets },
+                data: { labels: filterDates, datasets },
                 options: getMultiChartOptions('Mean Score (km)')
             });
         }
 
-        // NEW: Cumulative Target & Pace Projection Line Chart (Starts at Y=0)
-        function renderPlotTargetPace(activePlayers) {
+        // Cumulative Target & Pace Projection Line Chart (Starts at Y=0)
+        function renderPlotTargetPace(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotTargetPace').getContext('2d');
-            if (chartTargetPace) chartTargetPace.destroy();
+            if (chartInstances['chartTargetPace']) chartInstances['chartTargetPace'].destroy();
 
-            const maxDays = Math.max(...activePlayers.map(p => p.expeditions.length));
-            const dayLabels = Array.from({ length: maxDays }, (_, i) => `Day ${i + 1}`);
-
-            // 300 km/day Benchmark Line
-            const benchmarkData = dayLabels.map((_, i) => (i + 1) * 300);
+            const dayLabels = filterDates.map((_, i) => `Day ${i + 1}`);
+            const benchmarkData = filterDates.map((_, i) => (i + 1) * 300);
 
             const datasets = [
                 {
@@ -923,35 +1114,45 @@
                     borderWidth: 2,
                     pointRadius: 0
                 },
-                ...activePlayers.map(p => ({
-                    label: `${p.name} Actual`,
-                    data: p.expeditions.map(e => e.cumDistance),
-                    borderColor: p.palette.color,
-                    backgroundColor: p.palette.bg,
-                    borderWidth: 2.5,
-                    pointRadius: 2,
-                    tension: 0.1
-                }))
+                ...activePlayers.map(p => {
+                    let run = 0;
+                    const dateMap = {};
+                    p.expeditions.filter(e => filterDates.includes(e.day)).forEach(e => {
+                        run += e.distanceKm;
+                        dateMap[e.day] = run;
+                    });
+                    return {
+                        label: `${p.name} Actual`,
+                        data: filterDates.map(d => dateMap[d] !== undefined ? dateMap[d] : null),
+                        borderColor: p.palette.color,
+                        backgroundColor: p.palette.bg,
+                        borderWidth: 2.5,
+                        pointRadius: 2,
+                        tension: 0.1
+                    };
+                })
             ];
 
-            chartTargetPace = new Chart(ctx, {
+            chartInstances['chartTargetPace'] = new Chart(ctx, {
                 type: 'line',
                 data: { labels: dayLabels, datasets },
                 options: getMultiChartOptions('Cumulative Score (km)')
             });
         }
 
-        // NEW: Round-by-Round Success Rate & Avg Distance (Starts at Y=0)
-        function renderPlotRounds(activePlayers) {
+        // Round-by-Round Success Rate & Avg Distance (Starts at Y=0)
+        function renderPlotRounds(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotRounds').getContext('2d');
-            if (chartRounds) chartRounds.destroy();
+            if (chartInstances['chartRounds']) chartInstances['chartRounds'].destroy();
 
             const roundLabels = ['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5'];
 
             const datasets = activePlayers.map(p => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
                 const accData = [1, 2, 3, 4, 5].map(r => {
-                    const st = p.roundStats[r];
-                    return st && st.tot > 0 ? ((st.succ / st.tot) * 100) : 0;
+                    const pins = exps.flatMap(e => e.pins || []).filter(pin => pin.round === r);
+                    const succ = pins.filter(pin => pin.success).length;
+                    return pins.length > 0 ? ((succ / pins.length) * 100) : 0;
                 });
 
                 return {
@@ -962,7 +1163,7 @@
                 };
             });
 
-            chartRounds = new Chart(ctx, {
+            chartInstances['chartRounds'] = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: roundLabels, datasets },
                 options: {
@@ -981,15 +1182,21 @@
         }
 
         // Plot 5: Multi-Player Gaussian Score Bin Probability Curves (0 to 500 Range, Starts at Y=0)
-        function renderPlot5(activePlayers) {
+        function renderPlot5(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot5').getContext('2d');
-            if (chart5) chart5.destroy();
+            if (chartInstances['chart5']) chartInstances['chart5'].destroy();
 
             const xBins = [];
             for (let x = 0; x <= 500; x += 10) xBins.push(x);
 
             const datasets = activePlayers.map(p => {
-                const probs = xBins.map(x => (normCDF(x + 10, p.mean, p.std) - normCDF(x, p.mean, p.std)) * 100);
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                const distances = exps.map(e => e.distanceKm);
+                const mean = distances.length > 0 ? (distances.reduce((a, b) => a + b, 0) / distances.length) : 0;
+                const variance = distances.length > 0 ? (distances.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / distances.length) : 0;
+                const std = Math.sqrt(variance) || 1;
+
+                const probs = xBins.map(x => (normCDF(x + 10, mean, std) - normCDF(x, mean, std)) * 100);
                 return {
                     label: `${p.name} Prob %`,
                     data: probs,
@@ -1002,7 +1209,7 @@
                 };
             });
 
-            chart5 = new Chart(ctx, {
+            chartInstances['chart5'] = new Chart(ctx, {
                 type: 'line',
                 data: { labels: xBins, datasets },
                 options: {
@@ -1020,16 +1227,15 @@
             });
         }
 
-        // NEW: Daily Win Leaderboard (Head-to-Head 1st Places)
-        function renderPlotWins(activePlayers) {
+        // Daily Win Leaderboard (Head-to-Head 1st Places)
+        function renderPlotWins(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotWins').getContext('2d');
-            if (chartWins) chartWins.destroy();
+            if (chartInstances['chartWins']) chartInstances['chartWins'].destroy();
 
             const winCounts = {};
             activePlayers.forEach(p => winCounts[p.name] = 0);
 
-            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))];
-            allDates.forEach(d => {
+            filterDates.forEach(d => {
                 let maxDist = -1;
                 let winner = null;
                 activePlayers.forEach(p => {
@@ -1042,7 +1248,7 @@
                 if (winner && maxDist > 0) winCounts[winner]++;
             });
 
-            chartWins = new Chart(ctx, {
+            chartInstances['chartWins'] = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: activePlayers.map(p => p.name),
@@ -1066,15 +1272,16 @@
         }
 
         // Plot 4: Grouped Bar Chart of Selections by Rarity (Starts at Y=0)
-        function renderPlot4(activePlayers) {
+        function renderPlot4(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot4').getContext('2d');
-            if (chart4) chart4.destroy();
+            if (chartInstances['chart4']) chartInstances['chart4'].destroy();
 
             const rarityOrder = ['Farflung', 'Elusive', 'Rare', 'Uncommon', 'Common', 'Miss'];
             const datasets = activePlayers.map(p => {
                 const counts = {};
                 rarityOrder.forEach(r => counts[r] = 0);
-                p.allPins.forEach(pin => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                exps.flatMap(e => e.pins || []).forEach(pin => {
                     if (counts[pin.rarity] !== undefined) counts[pin.rarity]++;
                 });
 
@@ -1086,7 +1293,7 @@
                 };
             });
 
-            chart4 = new Chart(ctx, {
+            chartInstances['chart4'] = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: rarityOrder, datasets },
                 options: {
@@ -1101,16 +1308,16 @@
             });
         }
 
-        // NEW: Score Distribution Histogram (Starts at Y=0)
-        function renderPlotHistogram(activePlayers) {
+        // Score Distribution Histogram (Starts at Y=0)
+        function renderPlotHistogram(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotHistogram').getContext('2d');
-            if (chartHistogram) chartHistogram.destroy();
+            if (chartInstances['chartHistogram']) chartInstances['chartHistogram'].destroy();
 
             const bins = ['0-100', '101-200', '201-300', '301-400', '401-500'];
 
             const datasets = activePlayers.map(p => {
                 const counts = [0, 0, 0, 0, 0];
-                p.expeditions.forEach(e => {
+                p.expeditions.filter(e => filterDates.includes(e.day)).forEach(e => {
                     const score = e.distanceKm;
                     if (score <= 100) counts[0]++;
                     else if (score <= 200) counts[1]++;
@@ -1127,7 +1334,7 @@
                 };
             });
 
-            chartHistogram = new Chart(ctx, {
+            chartInstances['chartHistogram'] = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: bins, datasets },
                 options: {
@@ -1143,9 +1350,9 @@
         }
 
         // Plot 6: Overlaid Radar Chart (Starts at 0)
-        function renderPlot6(activePlayers) {
+        function renderPlot6(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot6').getContext('2d');
-            if (chart6) chart6.destroy();
+            if (chartInstances['chart6']) chartInstances['chart6'].destroy();
 
             const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -1153,7 +1360,7 @@
                 const daySums = { 'Monday':0, 'Tuesday':0, 'Wednesday':0, 'Thursday':0, 'Friday':0, 'Saturday':0, 'Sunday':0 };
                 const dayCounts = { 'Monday':0, 'Tuesday':0, 'Wednesday':0, 'Thursday':0, 'Friday':0, 'Saturday':0, 'Sunday':0 };
 
-                p.expeditions.forEach(e => {
+                p.expeditions.filter(e => filterDates.includes(e.day)).forEach(e => {
                     const d = new Date(e.day);
                     const dayName = d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
                     if (daySums[dayName] !== undefined) {
@@ -1174,7 +1381,7 @@
                 };
             });
 
-            chart6 = new Chart(ctx, {
+            chartInstances['chart6'] = new Chart(ctx, {
                 type: 'radar',
                 data: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets },
                 options: {
@@ -1231,26 +1438,18 @@
             }).addTo(leafletMap);
         }
 
-        function renderMapPins(activePlayers) {
-            // Clear Markers
+        function renderMapPins(activePlayers, filterDates) {
             mapMarkers.forEach(m => leafletMap.removeLayer(m));
             mapMarkers = [];
 
-            // Clear Vectors
-            vectorLines.forEach(l => leafletMap.removeLayer(l));
-            vectorLines = [];
-
-            // Clear Heatmap
             if (heatLayer) leafletMap.removeLayer(heatLayer);
 
-            const heatData = [];
-
             activePlayers.forEach(p => {
-                p.allPins.forEach(pin => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                exps.flatMap(e => e.pins || []).forEach(pin => {
                     if (pin.lat !== null && pin.lat !== undefined && pin.lon !== null && pin.lon !== undefined) {
                         const color = RARITY_COLORS[pin.rarity] || '#9E9E9E';
 
-                        // Circle Marker
                         const marker = L.circleMarker([pin.lat, pin.lon], {
                             radius: 5.5,
                             fillColor: color,
@@ -1262,6 +1461,8 @@
 
                         marker.rarityCategory = pin.rarity;
                         marker.playerName = p.name;
+                        marker.lat = pin.lat;
+                        marker.lon = pin.lon;
 
                         const popupHTML = `
                             <div class="space-y-1.5 text-xs font-sans">
@@ -1280,33 +1481,9 @@
 
                         marker.bindPopup(popupHTML);
                         mapMarkers.push(marker);
-
-                        heatData.push([pin.lat, pin.lon, 0.8]);
-
-                        // Generate synthetic miss vector lines for missed pins (lost)
-                        if (!pin.success) {
-                            // Target offset simulation
-                            const targetLat = pin.lat + (Math.random() * 8 - 4);
-                            const targetLon = pin.lon + (Math.random() * 8 - 4);
-
-                            const line = L.polyline([[pin.lat, pin.lon], [targetLat, targetLon]], {
-                                color: '#ef4444',
-                                weight: 1.5,
-                                dashArray: '3, 4',
-                                opacity: 0.7
-                            });
-                            line.rarityCategory = pin.rarity;
-                            line.playerName = p.name;
-                            vectorLines.push(line);
-                        }
                     }
                 });
             });
-
-            // Initialize Heatmap Layer using Leaflet.heat
-            if (typeof L.heatLayer === 'function') {
-                heatLayer = L.heatLayer(heatData, { radius: 18, blur: 12, maxZoom: 4 });
-            }
 
             updateMapLayers();
         }
@@ -1314,31 +1491,36 @@
         function updateMapLayers() {
             const showPins = document.getElementById('togglePinMarkers').checked;
             const showHeat = document.getElementById('toggleHeatmap').checked;
-            const showVectors = document.getElementById('toggleMissVectors').checked;
             const rFilter = document.querySelector('.map-filter-btn.active')?.getAttribute('data-rarity') || null;
             const pFilter = document.getElementById('mapPlayerFilter').value;
 
-            // Pins
+            const filteredHeatPoints = [];
+
             mapMarkers.forEach(m => {
                 const matchR = (rFilter === null || m.rarityCategory === rFilter);
                 const matchP = (pFilter === 'ALL' || m.playerName === pFilter);
-                if (showPins && matchR && matchP) m.addTo(leafletMap);
-                else leafletMap.removeLayer(m);
+                
+                if (matchR && matchP) {
+                    if (showPins) m.addTo(leafletMap);
+                    else leafletMap.removeLayer(m);
+                    
+                    if (m.rarityCategory !== 'Miss') {
+                        filteredHeatPoints.push([m.lat, m.lon, 0.8]);
+                    }
+                } else {
+                    leafletMap.removeLayer(m);
+                }
             });
 
-            // Heatmap
             if (heatLayer) {
-                if (showHeat) heatLayer.addTo(leafletMap);
-                else leafletMap.removeLayer(heatLayer);
+                leafletMap.removeLayer(heatLayer);
+                heatLayer = null;
             }
 
-            // Vectors
-            vectorLines.forEach(l => {
-                const matchR = (rFilter === null || l.rarityCategory === rFilter);
-                const matchP = (pFilter === 'ALL' || l.playerName === pFilter);
-                if (showVectors && matchR && matchP) l.addTo(leafletMap);
-                else leafletMap.removeLayer(l);
-            });
+            if (showHeat && typeof L.heatLayer === 'function' && filteredHeatPoints.length > 0) {
+                heatLayer = L.heatLayer(filteredHeatPoints, { radius: 18, blur: 12, maxZoom: 4 });
+                heatLayer.addTo(leafletMap);
+            }
         }
 
         function filterMapMarkers(rarity) {
@@ -1353,7 +1535,7 @@
         }
 
         // Section 5: Daily Multi-Player Score Table
-        function renderDailyTable(activePlayers) {
+        function renderDailyTable(activePlayers, filterDates) {
             const thead = document.getElementById('dailyTableHead');
             const tbody = document.getElementById('dailyTableBody');
 
@@ -1367,10 +1549,10 @@
             headHTML += `</tr>`;
             thead.innerHTML = headHTML;
 
-            const allDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort().reverse();
+            const datesSorted = [...filterDates].sort().reverse();
             tbody.innerHTML = '';
 
-            allDates.forEach(d => {
+            datesSorted.forEach(d => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-800/40 transition day-row';
 
