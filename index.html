@@ -49,6 +49,10 @@
             border: 1px solid #334155;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
+        }
         @media print {
             .no-print { display: none !important; }
             body { background-color: #020617 !important; color: #f8fafc !important; }
@@ -70,16 +74,16 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-3 no-print">
-                <button onclick="window.print()" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
+            <div class="flex items-center space-x-2 sm:space-x-3 no-print">
+                <button onclick="window.print()" class="px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg transition shadow-lg shadow-emerald-600/20 flex items-center space-x-2">
                     <i class="fa-solid fa-file-pdf"></i>
-                    <span>Download PDF Report</span>
+                    <span class="hidden sm:inline">Download PDF Report</span>
                 </button>
-                <button id="btnLoadSingleSample" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg transition flex items-center space-x-2">
+                <button id="btnLoadSingleSample" class="px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg transition flex items-center space-x-2">
                     <i class="fa-solid fa-user"></i>
                     <span>Reset to Player 1 Only</span>
                 </button>
-                <button id="btnLoad4Sample" class="px-3.5 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white rounded-lg transition shadow-lg shadow-indigo-600/20 flex items-center space-x-2">
+                <button id="btnLoad4Sample" class="px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white rounded-lg transition shadow-lg shadow-indigo-600/20 flex items-center space-x-2">
                     <i class="fa-solid fa-users"></i>
                     <span>Load Demo 4-Player Stats</span>
                 </button>
@@ -89,22 +93,33 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
 
-        <!-- Controls Bar: Upload Slots & Shared Days Filter -->
+        <!-- Controls Bar: Upload Slots, Date Range & Shared Days Filter -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4 no-print">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
                     <i class="fa-solid fa-folder-open text-indigo-400"></i>
-                    <span>Player JSON Data Slots (Player 1 Pre-loaded; Slots 2-4 Empty)</span>
+                    <span>Player JSON Data Slots & Comparison Filters</span>
                 </h2>
 
-                <!-- Shared Completed Days Toggle Switch -->
-                <div class="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
-                    <span class="text-xs font-medium text-slate-300">Compare Mode:</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="sharedDaysToggle" class="sr-only peer" onchange="renderDashboard()">
-                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                    </label>
-                    <span id="toggleLabel" class="text-xs font-semibold text-emerald-400">All Days</span>
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Date Range Filter -->
+                    <div class="flex flex-wrap items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                        <span class="font-medium text-slate-400"><i class="fa-regular fa-calendar-days text-indigo-400 mr-1"></i>Date Range:</span>
+                        <input type="date" id="startDateFilter" onchange="renderDashboard()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-200 focus:outline-none focus:border-indigo-500" title="Start Date">
+                        <span class="text-slate-500">to</span>
+                        <input type="date" id="endDateFilter" onchange="renderDashboard()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-200 focus:outline-none focus:border-indigo-500" title="End Date">
+                        <button type="button" id="btnResetDateRange" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition font-medium">Reset</button>
+                    </div>
+
+                    <!-- Shared Completed Days Toggle Switch -->
+                    <div class="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                        <span class="text-xs font-medium text-slate-300">Compare Mode:</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sharedDaysToggle" class="sr-only peer" onchange="renderDashboard()">
+                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                        <span id="toggleLabel" class="text-xs font-semibold text-emerald-400">All Days</span>
+                    </div>
                 </div>
             </div>
 
@@ -169,96 +184,240 @@
 
         <!-- Filter Active Banner -->
         <div id="filterBanner" class="hidden bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
-            <span><i class="fa-solid fa-filter mr-1.5"></i> <strong>Shared Days Filter Active:</strong> Displaying stats restricted to <span id="sharedDayCount" class="font-bold text-white">0</span> calendar dates completed by all active players.</span>
+            <span><i class="fa-solid fa-filter mr-1.5"></i> <strong id="filterBannerTitle">Active Date Filter:</strong> Displaying stats across <span id="sharedDayCount" class="font-bold text-white">0</span> matching calendar dates.</span>
         </div>
 
         <!-- Dynamic Head-to-Head KPI Summary Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 1: Days Played -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Days Played</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Days Played</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-regular fa-calendar text-indigo-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Total number of completed daily expeditions logged by each active player within the selected date and shared-day filters.
                 </div>
                 <div id="kpiDaysGrid" class="space-y-1 text-xs"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 2: Total Pins -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Total Pins</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Total Pins</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-solid fa-location-dot text-emerald-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Cumulative count of all individual round pins dropped across filtered expeditions (typically 5 rounds per daily expedition).
                 </div>
                 <div id="kpiPinsGrid" class="space-y-1 text-xs"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 3: Hit Accuracy % -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Hit Accuracy %</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Hit Accuracy %</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-solid fa-bullseye text-amber-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Percentage of total pins placed that landed in a valid target country rather than resulting in a "Miss" (0 km).
                 </div>
                 <div id="kpiAccuracyGrid" class="space-y-1 text-xs"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 4: Total Distance -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Total Distance</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Total Distance</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-solid fa-route text-sky-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Sum of all expedition distance scores (km) earned across the filtered date window.
                 </div>
                 <div id="kpiTotalDistGrid" class="space-y-1 text-xs"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 5: Daily Average -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Daily Average</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Daily Average</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-solid fa-chart-line text-purple-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Mean daily score (Total Distance divided by Days Played) within the active filter range.
                 </div>
                 <div id="kpiAvgDistGrid" class="space-y-1 text-xs"></div>
             </div>
 
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
+            <!-- KPI 6: Passport Stamps -->
+            <div class="info-card bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="text-xs font-medium text-slate-400 flex items-center justify-between">
-                    <span>Passport Stamps</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span>Passport Stamps</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain metric">?</button>
+                    </div>
                     <i class="fa-solid fa-passport text-rose-400"></i>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-lg p-2 text-[11px] text-slate-300 leading-relaxed">
+                    Count of distinct countries unlocked via successful hits across each player's profile.
                 </div>
                 <div id="kpiPassportGrid" class="space-y-1 text-xs"></div>
             </div>
         </div>
 
-        <!-- Section 1: Multi-Player Expedition Score Trends (Row 1) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart1">
+        <!-- Section 1: Full-Width Stacked Primary Trend Charts (In Order Going Down) -->
+        <div class="space-y-6">
+            <!-- 1. Expedition Score (km) -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart1">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Expedition Score (km)</h3>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Daily</span>
-                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
-                            <i class="fa-solid fa-expand expand-icon"></i>
-                        </button>
+                    <div class="flex items-center space-x-2.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Expedition Score (km)</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Daily Progression</span>
                     </div>
+                    <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                        <i class="fa-solid fa-expand expand-icon"></i>
+                    </button>
                 </div>
-                <div class="chart-container h-64 w-full relative">
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Plots each player's raw daily total distance score (km) across calendar dates using straight-line segments. Useful for spotting single-day spikes, slumps, and direct head-to-head daily swings.
+                </div>
+                <div class="chart-container h-72 sm:h-80 w-full relative">
                     <canvas id="chartPlot1"></canvas>
                 </div>
             </div>
 
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart2">
+            <!-- 2. Cumulative Average Distance -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart2">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Cumulative Average Distance</h3>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Trend</span>
-                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
-                            <i class="fa-solid fa-expand expand-icon"></i>
-                        </button>
+                    <div class="flex items-center space-x-2.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Cumulative Average Distance</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">Running Mean Trend</span>
                     </div>
+                    <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                        <i class="fa-solid fa-expand expand-icon"></i>
+                    </button>
                 </div>
-                <div class="chart-container h-64 w-full relative">
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Shows each player's running career mean (cumulative distance divided by expeditions played up to that date). As more days are played, this line stabilizes and reveals long-term baseline skill separation.
+                </div>
+                <div class="chart-container h-72 sm:h-80 w-full relative">
                     <canvas id="chartPlot2"></canvas>
                 </div>
             </div>
 
-            <!-- Target & Pace Projection Line -->
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartTargetPace">
+            <!-- 3. Rolling 7-Day Moving Average -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRolling7">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Pace vs. 300km/Day Target</h3>
+                    <div class="flex items-center space-x-2.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Rolling 7-Day Moving Average</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                        <span class="text-xs px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-medium">7-Day Momentum</span>
+                    </div>
+                    <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                        <i class="fa-solid fa-expand expand-icon"></i>
+                    </button>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Computes the trailing 7-day average score for each player on every date. Unlike the cumulative average, this short-term window highlights recent hot streaks, cold spells, and current form.
+                </div>
+                <div class="chart-container h-72 sm:h-80 w-full relative">
+                    <canvas id="chartPlotRolling7"></canvas>
+                </div>
+            </div>
+
+            <!-- 4. Cumulative Rarity Progression Over Time (Single-Player) -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRarityOverTime">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Cumulative Rarity Progression Over Time</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                        <span id="rarityActivePlayerBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
+                            <span id="rarityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span id="rarityPlayerLabel">Viewing: Adam</span>
+                        </span>
+                    </div>
+
+                    <!-- Player Selector Pills + Expand Toggle -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div id="rarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
+                            <!-- Dynamically populated player buttons -->
+                        </div>
+
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition ml-1" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Tracks the running cumulative total of pins achieved in each rarity tier (Farflung, Elusive, Rare, Uncommon, Common, and Miss) over time for a single selected player. Use the player toggle pills to inspect individual rarity accumulation slopes.
+                </div>
+
+                <div class="chart-container h-72 sm:h-80 w-full relative">
+                    <canvas id="chartPlotRarityOverTime"></canvas>
+                </div>
+            </div>
+
+            <!-- 5. NEW: Rolling 7-Day Average Rarity Selections (Single-Player) -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRollingRarity7">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Rolling 7-Day Average Rarity Selections</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                        <span id="rollingRarityActivePlayerBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
+                            <span id="rollingRarityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span id="rollingRarityPlayerLabel">Viewing: Adam</span>
+                        </span>
+                    </div>
+
+                    <!-- Player Selector Pills + Expand Toggle -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div id="rollingRarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
+                            <!-- Dynamically populated player buttons -->
+                        </div>
+
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition ml-1" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Calculates the trailing 7-day moving average of pins per expedition for each rarity tier (Farflung, Elusive, Rare, Uncommon, Common, and Miss) for the selected player. Helps identify whether recent score changes come from landing rarer picks or reducing misses.
+                </div>
+
+                <div class="chart-container h-72 sm:h-80 w-full relative">
+                    <canvas id="chartPlotRollingRarity7"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Pace, Round Success & Score Probability (Row 2) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Target & Pace Projection Line -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartTargetPace">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Pace vs. 300km/Day Target</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Pace Tracker</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -266,17 +425,21 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Compares each player's cumulative distance against a 300 km/day benchmark pace line (dashed green). Staying above the dashed line indicates an average exceeding 300 km per expedition.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotTargetPace"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Section 2: Advanced Statistical Breakdowns (Row 2) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRounds">
+            <!-- Round-by-Round Success Rate -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartRounds">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Round-by-Round Success Rate</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Round-by-Round Success Rate</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">Rounds 1 to 5</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -284,15 +447,21 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Breaks down hit accuracy percentage separately for Rounds 1 through 5, revealing whether players start strong on opening prompts or excel on harder late-round prompts.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotRounds"></canvas>
                 </div>
             </div>
 
             <!-- Score Bin Probability Curve -->
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart5">
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart5">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Score Bin Probability</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Score Bin Probability</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">10-Pt Windows (0-500)</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -300,15 +469,24 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Models each player's normal probability distribution across 10-point score intervals from 0 to 500 km based on their sample mean and standard deviation. Taller, narrower peaks indicate higher scoring consistency.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot5"></canvas>
                 </div>
             </div>
+        </div>
 
+        <!-- Section 3: Wins, Rarity Breakdown & Histogram (Row 3) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Daily Win Leaderboard -->
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartWins">
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartWins">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Daily Lead / 1st Place Wins</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Daily Lead / 1st Place Wins</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-amber-400 font-medium"><i class="fa-solid fa-trophy"></i> Leaderboard</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -316,17 +494,21 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Counts how many calendar days each player finished with the outright highest score among all active players in the comparison set.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotWins"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Section 3: Distribution & Radar Analytics (Row 3) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart4">
+            <!-- Selections by Rarity -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart4">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Selections by Rarity</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Selections by Rarity</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">Grouped Breakdown</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -334,14 +516,21 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Side-by-side comparison of total pins landed in each rarity category (Farflung 100km, Elusive 85km, Rare 70km, Uncommon 55km, Common 40km, and Miss 0km) across all active players.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot4"></canvas>
                 </div>
             </div>
 
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartHistogram">
+            <!-- Score Distribution Histogram -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartHistogram">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Score Distribution Histogram</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Score Distribution Histogram</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">Score Frequencies</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -349,14 +538,24 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Groups each player's daily expedition totals into 100-point score brackets (0–100 up to 401–500 km) to show how frequently they hit elite 300+ or 400+ km days.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlotHistogram"></canvas>
                 </div>
             </div>
+        </div>
 
-            <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart6">
+        <!-- Section 4: Radar, Regional Accuracy & High-Variance Index (Row 4) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Daily Breakdown Radar -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chart6">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-200">Daily Breakdown Radar</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Daily Breakdown Radar</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400">Mon - Sun Comparison</span>
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
@@ -364,18 +563,145 @@
                         </button>
                     </div>
                 </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Compares average expedition scores across each day of the week (Monday through Sunday) to highlight weekday vs. weekend performance patterns.
+                </div>
                 <div class="chart-container h-64 w-full relative">
                     <canvas id="chartPlot6"></canvas>
                 </div>
             </div>
+
+            <!-- Hemisphere & Continental Accuracy Breakdown -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartGeoAccuracy">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Hemisphere & Continental Accuracy</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-medium">Regional Hit %</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Calculates hit accuracy percentage by hemisphere (Northern vs. Southern) and continent (Europe, Asia, Americas, Africa, Oceania) based on where pins were placed.
+                </div>
+                <div class="chart-container h-64 w-full relative">
+                    <canvas id="chartPlotGeoAccuracy"></canvas>
+                </div>
+            </div>
+
+            <!-- Clutch Difference / High-Variance Index (Standard Deviation) -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartVariance">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">High-Variance Index (Std Dev)</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">Volatility</span>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-2.5 text-xs text-slate-300 leading-relaxed">
+                    Measures daily score volatility via standard deviation (±km). Players under ±45 km earn "Steady Anchor", ±45–69 km earn "Balanced", and ≥±70 km earn "Boom-or-Bust".
+                </div>
+                <div class="chart-container h-44 w-full relative">
+                    <canvas id="chartPlotVariance"></canvas>
+                </div>
+                <div id="varianceBadgesGrid" class="grid grid-cols-2 gap-2 pt-1 text-[11px]"></div>
+            </div>
         </div>
 
-        <!-- Section 4: Interactive Map with Layer Toggles (Row 4) -->
-        <div class="chart-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="map">
+        <!-- Section 5: Country Diversity & Head-to-Head Matrix (Row 5) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Country Diversity & Favorite Pick Concentration -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="cardCountryDiversity">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2">
+                        <h3 class="text-sm font-semibold text-slate-200">Country Diversity & Favorite Picks</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain card">?</button>
+                        <span id="diversityActiveBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
+                            <span id="diversityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span id="diversityPlayerLabel">Adam</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div id="diversityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1"></div>
+                        <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                            <i class="fa-solid fa-expand expand-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Counts distinct countries pinned (including misses via <code>countedAs</code>) divided by total pins placed (Diversity Index %), alongside the player's Top 5 most-frequently pinned countries and hit/miss splits.
+                </div>
+
+                <div class="chart-container space-y-4 overflow-y-auto">
+                    <!-- Summary Metrics Row -->
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] text-slate-400">Unique Countries</div>
+                            <div id="divUniqueCountries" class="text-lg font-bold text-slate-100 mt-0.5">0</div>
+                        </div>
+                        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] text-slate-400">Diversity Index</div>
+                            <div id="divIndexPct" class="text-lg font-bold text-emerald-400 mt-0.5">0%</div>
+                        </div>
+                        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] text-slate-400">Top Pick Share</div>
+                            <div id="divTopPickShare" class="text-lg font-bold text-amber-400 mt-0.5">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 Most-Pinned Countries Breakdown -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <span>Top 5 Most-Pinned Countries</span>
+                            <span>Pins (Hits / Misses) &bull; Share</span>
+                        </div>
+                        <div id="topCountriesList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Head-to-Head Matrix (Win / Tie / Loss Record) -->
+            <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="cardH2HMatrix">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-1.5">
+                            <h3 class="text-sm font-semibold text-slate-200">Daily Head-to-Head Matrix (W - T - L)</h3>
+                            <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain matrix">?</button>
+                        </div>
+                        <p class="text-xs text-slate-400">Direct pairwise records & average margin differential (km) on shared dates.</p>
+                    </div>
+                    <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
+                        <i class="fa-solid fa-expand expand-icon"></i>
+                    </button>
+                </div>
+
+                <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                    Pairwise competitive grid comparing each row player against every column player on shared dates, showing Wins–Ties–Losses and average daily margin differential (+/− km).
+                </div>
+
+                <div class="chart-container overflow-x-auto rounded-xl border border-slate-800">
+                    <div id="h2hMatrixContainer" class="min-w-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Interactive Map with Layer Toggles (Row 6) -->
+        <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="map">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
                         <span>Global Pin Map Coordinates</span>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain map">?</button>
                     </h3>
                     <p class="text-xs text-slate-400">Toggle map overlays: Pin Markers and Density Heatmap.</p>
                 </div>
@@ -414,17 +740,24 @@
                 </div>
             </div>
 
+            <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                Interactive world map plotting exact pin drop coordinates. Marker fill indicates pin rarity while the outer ring identifies the player. Filter by player or rarity tier, or enable the Density Heatmap overlay.
+            </div>
+
             <!-- Leaflet Container -->
             <div class="chart-container h-96 w-full relative">
                 <div id="map" class="h-full w-full rounded-xl border border-slate-800"></div>
             </div>
         </div>
 
-        <!-- Section 5: Daily Pin Score Table (Row 5) -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <!-- Section 7: Daily Pin Score Table (Row 7) -->
+        <div class="info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h3 class="text-sm font-semibold text-slate-200">Daily Multi-Player Score Breakdown</h3>
+                    <div class="flex items-center space-x-1.5">
+                        <h3 class="text-sm font-semibold text-slate-200">Daily Multi-Player Score Breakdown</h3>
+                        <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain table">?</button>
+                    </div>
                     <p class="text-xs text-slate-400">Head-to-head daily total distance and pin score breakdown across active players.</p>
                 </div>
 
@@ -434,6 +767,10 @@
                         <input type="text" id="tableSearchInput" placeholder="Filter date or card..." class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 w-48 sm:w-64">
                     </div>
                 </div>
+            </div>
+
+            <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
+                Chronological ledger of daily expedition scores for all active players, with color-coded round dots underneath each score (hover over any dot to inspect its round distance and rarity).
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-slate-800">
@@ -481,13 +818,16 @@
         ];
 
         let loadedPlayers = [null, null, null, null];
+        let selectedRarityPlayerIndex = 0;
+        let selectedRollingRarityPlayerIndex = 0;
+        let selectedDiversityPlayerIndex = 0;
         let chartInstances = {};
         let leafletMap = null;
         let mapMarkers = [];
         let heatLayer = null;
         let expandedCard = null;
 
-        // Sample Data for Player 1 (Adam)
+        // Sample Data for Player 1 (Adam) - Full 22-Day Expedition Log
         const sampleFarflungData = {
             "expeditions": [
                 {"day":"2026-10-20","distanceKm":210,"pins":[
@@ -647,7 +987,90 @@
             ]
         };
 
-        // Math Helpers
+        // Country ISO3 to Continent & Name Lookup for Regional Breakdown & Diversity Display
+        const COUNTRY_META = {
+            'AFG': { name: 'Afghanistan', region: 'Asia' },
+            'ALB': { name: 'Albania', region: 'Europe' },
+            'DZA': { name: 'Algeria', region: 'Africa' },
+            'AUS': { name: 'Australia', region: 'Oceania' },
+            'AUT': { name: 'Austria', region: 'Europe' },
+            'AZE': { name: 'Azerbaijan', region: 'Asia' },
+            'BEL': { name: 'Belgium', region: 'Europe' },
+            'BTN': { name: 'Bhutan', region: 'Asia' },
+            'BRA': { name: 'Brazil', region: 'Americas' },
+            'CAN': { name: 'Canada', region: 'Americas' },
+            'CHL': { name: 'Chile', region: 'Americas' },
+            'CHN': { name: 'China', region: 'Asia' },
+            'COD': { name: 'DR Congo', region: 'Africa' },
+            'CYP': { name: 'Cyprus', region: 'Europe' },
+            'DNK': { name: 'Denmark', region: 'Europe' },
+            'EGY': { name: 'Egypt', region: 'Africa' },
+            'ESP': { name: 'Spain', region: 'Europe' },
+            'ETH': { name: 'Ethiopia', region: 'Africa' },
+            'FRA': { name: 'France', region: 'Europe' },
+            'GBR': { name: 'United Kingdom', region: 'Europe' },
+            'GEO': { name: 'Georgia', region: 'Asia' },
+            'DEU': { name: 'Germany', region: 'Europe' },
+            'GRC': { name: 'Greece', region: 'Europe' },
+            'GTM': { name: 'Guatemala', region: 'Americas' },
+            'GUY': { name: 'Guyana', region: 'Americas' },
+            'HND': { name: 'Honduras', region: 'Americas' },
+            'HUN': { name: 'Hungary', region: 'Europe' },
+            'IDN': { name: 'Indonesia', region: 'Asia' },
+            'IND': { name: 'India', region: 'Asia' },
+            'IRN': { name: 'Iran', region: 'Asia' },
+            'ITA': { name: 'Italy', region: 'Europe' },
+            'JAM': { name: 'Jamaica', region: 'Americas' },
+            'JPN': { name: 'Japan', region: 'Asia' },
+            'KAZ': { name: 'Kazakhstan', region: 'Asia' },
+            'KIR': { name: 'Kiribati', region: 'Oceania' },
+            'KOR': { name: 'South Korea', region: 'Asia' },
+            'LAO': { name: 'Laos', region: 'Asia' },
+            'MAR': { name: 'Morocco', region: 'Africa' },
+            'MEX': { name: 'Mexico', region: 'Americas' },
+            'MMR': { name: 'Myanmar', region: 'Asia' },
+            'MNG': { name: 'Mongolia', region: 'Asia' },
+            'MYS': { name: 'Malaysia', region: 'Asia' },
+            'NER': { name: 'Niger', region: 'Africa' },
+            'NLD': { name: 'Netherlands', region: 'Europe' },
+            'NOR': { name: 'Norway', region: 'Europe' },
+            'NZL': { name: 'New Zealand', region: 'Oceania' },
+            'PAK': { name: 'Pakistan', region: 'Asia' },
+            'PHL': { name: 'Philippines', region: 'Asia' },
+            'PNG': { name: 'Papua New Guinea', region: 'Oceania' },
+            'POL': { name: 'Poland', region: 'Europe' },
+            'PRK': { name: 'North Korea', region: 'Asia' },
+            'PRT': { name: 'Portugal', region: 'Europe' },
+            'RUS': { name: 'Russia', region: 'Europe' },
+            'SGP': { name: 'Singapore', region: 'Asia' },
+            'SOM': { name: 'Somalia', region: 'Africa' },
+            'SWE': { name: 'Sweden', region: 'Europe' },
+            'CHE': { name: 'Switzerland', region: 'Europe' },
+            'SYR': { name: 'Syria', region: 'Asia' },
+            'THA': { name: 'Thailand', region: 'Asia' },
+            'TTO': { name: 'Trinidad & Tobago', region: 'Americas' },
+            'TUR': { name: 'Turkey', region: 'Asia' },
+            'UKR': { name: 'Ukraine', region: 'Europe' },
+            'URY': { name: 'Uruguay', region: 'Americas' },
+            'VEN': { name: 'Venezuela', region: 'Americas' },
+            'VNM': { name: 'Vietnam', region: 'Asia' },
+            'ZAF': { name: 'South Africa', region: 'Africa' },
+            'ZMB': { name: 'Zambia', region: 'Africa' }
+        };
+
+        function inferPinRegion(pin) {
+            const code = (pin.countedAs || pin.answer || '').toUpperCase();
+            if (COUNTRY_META[code]) return COUNTRY_META[code].region;
+            const lat = pin.lat ?? 0;
+            const lon = pin.lon ?? 0;
+            if (lon < -30) return 'Americas';
+            if (lat > 35 && lon >= -25 && lon <= 60) return 'Europe';
+            if (lat <= 35 && lat >= -35 && lon >= -20 && lon <= 55) return 'Africa';
+            if (lat < -10 && lon > 110) return 'Oceania';
+            return 'Asia';
+        }
+
+        // Gaussian Error Function & Normal CDF Helpers
         function erf(x) {
             const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
             const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
@@ -662,6 +1085,18 @@
             return 0.5 * (1 + erf((x - mean) / (std * Math.sqrt(2))));
         }
 
+        // Toggle explanation drawer on any card
+        function toggleCardHelp(btn) {
+            const card = btn.closest('.info-card');
+            if (!card) return;
+            const drawer = card.querySelector('.card-help-drawer');
+            if (!drawer) return;
+            const isHidden = drawer.classList.contains('hidden');
+            drawer.classList.toggle('hidden');
+            btn.classList.toggle('bg-indigo-500', isHidden);
+            btn.classList.toggle('text-white', isHidden);
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initLeafletMap();
             setupEventListeners();
@@ -671,6 +1106,12 @@
         function setupEventListeners() {
             document.getElementById('btnLoadSingleSample').addEventListener('click', resetToSinglePlayer);
             document.getElementById('btnLoad4Sample').addEventListener('click', load4PlayerSampleData);
+
+            document.getElementById('btnResetDateRange').addEventListener('click', () => {
+                document.getElementById('startDateFilter').value = '';
+                document.getElementById('endDateFilter').value = '';
+                renderDashboard();
+            });
 
             document.getElementById('tableSearchInput').addEventListener('input', (e) => filterTable(e.target.value));
 
@@ -704,7 +1145,7 @@
                 
                 const container = card.querySelector('.chart-container');
                 if (container) {
-                    container.classList.remove('h-64', 'h-96');
+                    container.classList.remove('h-64', 'h-72', 'sm:h-80', 'h-96', 'h-44');
                     container.classList.add('flex-1', 'w-full', 'min-h-0');
                 }
 
@@ -741,6 +1182,18 @@
                 container.classList.remove('flex-1', 'w-full', 'min-h-0');
                 if (chartId === 'map') {
                     container.classList.add('h-96');
+                } else if (
+                    chartId === 'chart1' ||
+                    chartId === 'chart2' ||
+                    chartId === 'chartRolling7' ||
+                    chartId === 'chartRarityOverTime' ||
+                    chartId === 'chartRollingRarity7'
+                ) {
+                    container.classList.add('h-72', 'sm:h-80');
+                } else if (chartId === 'chartVariance') {
+                    container.classList.add('h-44');
+                } else if (chartId === 'cardCountryDiversity' || chartId === 'cardH2HMatrix') {
+                    // Restore natural flow layout
                 } else {
                     container.classList.add('h-64');
                 }
@@ -762,6 +1215,12 @@
         function resetToSinglePlayer() {
             loadedPlayers = [null, null, null, null];
             loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0]);
+            selectedRarityPlayerIndex = 0;
+            selectedRollingRarityPlayerIndex = 0;
+            selectedDiversityPlayerIndex = 0;
+
+            document.getElementById('startDateFilter').value = '';
+            document.getElementById('endDateFilter').value = '';
 
             // Update UI Card Slots
             document.getElementById('labelPlayer1').innerText = 'Adam (Player 1)';
@@ -796,7 +1255,7 @@
 
                     renderDashboard();
                 } catch (err) {
-                    alert('Error parsing JSON file: ' + err.message);
+                    console.error('Error parsing JSON file:', err);
                 }
             };
             reader.readAsText(file);
@@ -810,13 +1269,24 @@
             document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.add('hidden');
             document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
             document.getElementById(`fileInput${slotIdx + 1}`).value = '';
+
+            const firstActiveIdx = loadedPlayers.findIndex(p => p !== null);
+            const fallbackIdx = firstActiveIdx !== -1 ? firstActiveIdx : 0;
+
+            if (selectedRarityPlayerIndex === slotIdx) selectedRarityPlayerIndex = fallbackIdx;
+            if (selectedRollingRarityPlayerIndex === slotIdx) selectedRollingRarityPlayerIndex = fallbackIdx;
+            if (selectedDiversityPlayerIndex === slotIdx) selectedDiversityPlayerIndex = fallbackIdx;
+
             renderDashboard();
         }
 
-        // Shared Completed Days Filter Helper
+        // Combined Date Range & Shared Completed Days Filter Helper
         function getActiveFilterContext(activePlayers) {
             const isSharedOnly = document.getElementById('sharedDaysToggle').checked;
             document.getElementById('toggleLabel').innerText = isSharedOnly ? "Shared Days Only" : "All Days";
+
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
 
             let filterDates = [];
             if (isSharedOnly) {
@@ -826,9 +1296,26 @@
                 filterDates = [...new Set(activePlayers.flatMap(p => p.expeditions.map(e => e.day)))].sort();
             }
 
+            if (startDate) {
+                filterDates = filterDates.filter(d => d >= startDate);
+            }
+            if (endDate) {
+                filterDates = filterDates.filter(d => d <= endDate);
+            }
+
+            const hasRangeFilter = Boolean(startDate || endDate);
             const banner = document.getElementById('filterBanner');
-            if (isSharedOnly) {
+            const bannerTitle = document.getElementById('filterBannerTitle');
+
+            if (isSharedOnly || hasRangeFilter) {
                 banner.classList.remove('hidden');
+                if (isSharedOnly && hasRangeFilter) {
+                    bannerTitle.innerText = 'Shared Days & Date Range Filter Active:';
+                } else if (isSharedOnly) {
+                    bannerTitle.innerText = 'Shared Days Filter Active:';
+                } else {
+                    bannerTitle.innerText = 'Date Range Filter Active:';
+                }
                 document.getElementById('sharedDayCount').innerText = filterDates.length;
             } else {
                 banner.classList.add('hidden');
@@ -935,29 +1422,35 @@
             const p3Dist = [140, 170, 190, 150, 220, 180, 210, 160, 190, 130, 240, 170, 190, 200, 160, 180, 210, 150, 170, 190, 220, 180];
             const p4Dist = [240, 260, 210, 190, 280, 310, 270, 230, 250, 290, 320, 210, 280, 300, 240, 260, 270, 230, 290, 250, 310, 290];
 
-            function createMockJSON(distList) {
+            function createMockJSON(distList, playerVariant) {
                 return {
                     expeditions: dates.map((d, i) => {
                         const totalDist = distList[i];
+                        const r1 = playerVariant === 3 && i % 3 === 0 ? 'farflung' : 'wayfarer';
+                        const r2 = playerVariant === 1 && i % 2 === 0 ? 'tourist' : 'uncharted';
+                        const r3 = playerVariant === 2 ? 'tourist' : 'traveller';
+                        const r4 = totalDist > 260 ? 'farflung' : (playerVariant === 1 ? 'wayfarer' : 'lost');
+                        const r5 = (i + playerVariant) % 4 === 0 ? 'lost' : 'wayfarer';
+
                         return {
                             day: d,
                             distanceKm: totalDist,
                             pins: [
-                                { round: 1, rarity: 'wayfarer', distanceKm: 70, points: 70, cardText: 'Sample Card 1', answer: 'DEU', countedAs: 'DEU', lat: 51.1, lon: 10.4, zoom: 3 },
-                                { round: 2, rarity: 'uncharted', distanceKm: 85, points: 85, cardText: 'Sample Card 2', answer: 'FRA', countedAs: 'FRA', lat: 46.2, lon: 2.2, zoom: 3 },
-                                { round: 3, rarity: 'traveller', distanceKm: 55, points: 55, cardText: 'Sample Card 3', answer: 'JPN', countedAs: 'JPN', lat: 36.2, lon: 138.2, zoom: 3 },
-                                { round: 4, rarity: totalDist > 250 ? 'farflung' : 'lost', distanceKm: totalDist > 250 ? 100 : 0, points: totalDist > 250 ? 100 : 0, cardText: 'Sample Card 4', answer: totalDist > 250 ? 'SGP' : null, countedAs: 'SGP', lat: 1.35, lon: 103.8, zoom: 6 },
-                                { round: 5, rarity: 'wayfarer', distanceKm: 70, points: 70, cardText: 'Sample Card 5', answer: 'BRA', countedAs: 'BRA', lat: -14.2, lon: -51.9, zoom: 3 }
+                                { round: 1, rarity: r1, distanceKm: 70, points: 70, cardText: 'Sample Card 1', answer: 'DEU', countedAs: 'DEU', lat: 51.1, lon: 10.4, zoom: 3 },
+                                { round: 2, rarity: r2, distanceKm: 85, points: 85, cardText: 'Sample Card 2', answer: 'FRA', countedAs: 'FRA', lat: 46.2, lon: 2.2, zoom: 3 },
+                                { round: 3, rarity: r3, distanceKm: 55, points: 55, cardText: 'Sample Card 3', answer: 'JPN', countedAs: 'JPN', lat: 36.2, lon: 138.2, zoom: 3 },
+                                { round: 4, rarity: r4, distanceKm: r4 === 'lost' ? 0 : 100, points: r4 === 'lost' ? 0 : 100, cardText: 'Sample Card 4', answer: r4 === 'lost' ? null : 'SGP', countedAs: 'SGP', lat: 1.35, lon: 103.8, zoom: 6 },
+                                { round: 5, rarity: r5, distanceKm: r5 === 'lost' ? 0 : 70, points: r5 === 'lost' ? 0 : 70, cardText: 'Sample Card 5', answer: r5 === 'lost' ? null : 'BRA', countedAs: 'BRA', lat: -14.2, lon: -51.9, zoom: 3 }
                             ]
                         };
                     })
                 };
             }
 
-            loadedPlayers[0] = parsePlayerData(createMockJSON(p1Dist), 'Adam', PLAYER_PALETTE[0]);
-            loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist), 'Dan', PLAYER_PALETTE[1]);
-            loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist), 'Jakob', PLAYER_PALETTE[2]);
-            loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist), 'Nathan', PLAYER_PALETTE[3]);
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0]);
+            loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist, 1), 'Dan', PLAYER_PALETTE[1]);
+            loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist, 2), 'Jakob', PLAYER_PALETTE[2]);
+            loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist, 3), 'Nathan', PLAYER_PALETTE[3]);
 
             for (let i = 0; i < 4; i++) {
                 document.getElementById(`labelPlayer${i + 1}`).innerText = `${loadedPlayers[i].name} (P${i + 1})`;
@@ -978,6 +1471,11 @@
             renderKPIGrid(active, filterDates);
             renderPlot1(active, filterDates);
             renderPlot2(active, filterDates);
+            renderPlotRolling7(active, filterDates);
+            renderRarityPlayerTogglePills();
+            renderPlotRarityOverTime(filterDates);
+            renderRollingRarityPlayerTogglePills();
+            renderPlotRollingRarity7(filterDates);
             renderPlotTargetPace(active, filterDates);
             renderPlotRounds(active, filterDates);
             renderPlot5(active, filterDates);
@@ -985,6 +1483,11 @@
             renderPlot4(active, filterDates);
             renderPlotHistogram(active, filterDates);
             renderPlot6(active, filterDates);
+            renderPlotGeoAccuracy(active, filterDates);
+            renderPlotVariance(active, filterDates);
+            renderDiversityPlayerTogglePills();
+            renderCountryDiversityCard(filterDates);
+            renderH2HMatrix(active, filterDates);
             renderMapPins(active, filterDates);
             renderDailyTable(active, filterDates);
 
@@ -995,6 +1498,7 @@
             });
         }
 
+        // Head-to-Head KPI Summary Cards
         function renderKPIGrid(activePlayers, filterDates) {
             const keys = [
                 { id: 'kpiDaysGrid', fmt: (p) => {
@@ -1027,6 +1531,7 @@
 
             keys.forEach(k => {
                 const el = document.getElementById(k.id);
+                if (!el) return;
                 el.innerHTML = '';
                 activePlayers.forEach(p => {
                     el.innerHTML += `
@@ -1039,7 +1544,662 @@
             });
         }
 
-        // Plot 1: Daily Score Line Chart (Starts at Y=0)
+        function renderRarityPlayerTogglePills() {
+            const container = document.getElementById('rarityPlayerPills');
+            if (!container) return;
+
+            if (!loadedPlayers[selectedRarityPlayerIndex]) {
+                const firstIdx = loadedPlayers.findIndex(p => p !== null);
+                selectedRarityPlayerIndex = firstIdx !== -1 ? firstIdx : 0;
+            }
+
+            container.innerHTML = '';
+            loadedPlayers.forEach((p, idx) => {
+                if (!p) return;
+                const isSelected = (idx === selectedRarityPlayerIndex);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
+                    isSelected
+                        ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-600'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`;
+                btn.innerHTML = `
+                    <span class="w-2 h-2 rounded-full inline-block" style="background-color:${p.palette.color}"></span>
+                    <span>${p.name}</span>
+                `;
+                btn.onclick = () => {
+                    selectedRarityPlayerIndex = idx;
+                    const active = loadedPlayers.filter(pl => pl !== null);
+                    const { filterDates } = getActiveFilterContext(active);
+                    renderRarityPlayerTogglePills();
+                    renderPlotRarityOverTime(filterDates);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderPlotRarityOverTime(filterDates) {
+            const player = loadedPlayers[selectedRarityPlayerIndex];
+            if (!player) return;
+
+            const badge = document.getElementById('rarityActivePlayerBadge');
+            const dot = document.getElementById('rarityPlayerDot');
+            const label = document.getElementById('rarityPlayerLabel');
+
+            if (badge && dot && label) {
+                badge.style.borderColor = `${player.palette.color}66`;
+                badge.style.backgroundColor = `${player.palette.color}1A`;
+                badge.style.color = player.palette.color;
+                dot.style.backgroundColor = player.palette.color;
+                label.innerText = `Viewing: ${player.name} (Slot ${selectedRarityPlayerIndex + 1})`;
+            }
+
+            const ctx = document.getElementById('chartPlotRarityOverTime').getContext('2d');
+            if (chartInstances['chartRarityOverTime']) chartInstances['chartRarityOverTime'].destroy();
+
+            const rarityKeys = ['Farflung', 'Elusive', 'Rare', 'Uncommon', 'Common', 'Miss'];
+            const cumulativeCounts = {
+                'Farflung': [],
+                'Elusive': [],
+                'Rare': [],
+                'Uncommon': [],
+                'Common': [],
+                'Miss': []
+            };
+            const runningTotals = {
+                'Farflung': 0,
+                'Elusive': 0,
+                'Rare': 0,
+                'Uncommon': 0,
+                'Common': 0,
+                'Miss': 0
+            };
+
+            filterDates.forEach(date => {
+                const exp = player.expeditions.find(e => e.day === date);
+                if (exp && exp.pins) {
+                    exp.pins.forEach(pin => {
+                        if (runningTotals[pin.rarity] !== undefined) {
+                            runningTotals[pin.rarity]++;
+                        }
+                    });
+                }
+                rarityKeys.forEach(r => {
+                    cumulativeCounts[r].push(runningTotals[r]);
+                });
+            });
+
+            const datasets = rarityKeys.map(r => {
+                const col = RARITY_COLORS[r];
+                return {
+                    label: r,
+                    data: cumulativeCounts[r],
+                    borderColor: col,
+                    backgroundColor: col + '22',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    tension: 0,
+                    fill: false
+                };
+            });
+
+            chartInstances['chartRarityOverTime'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: filterDates,
+                    datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0',
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '500' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => `${player.name} — ${items[0].label}`,
+                                label: (c) => ` ${c.dataset.label}: ${c.raw} cumulative pins`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8', maxTicksLimit: 11 }
+                        },
+                        y: {
+                            min: 0,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Cumulative Pin Count',
+                                color: '#64748b'
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8', stepSize: 5 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // NEW: Rolling 7-Day Average Rarity Selections Toggle Pills & Plot
+        function renderRollingRarityPlayerTogglePills() {
+            const container = document.getElementById('rollingRarityPlayerPills');
+            if (!container) return;
+
+            if (!loadedPlayers[selectedRollingRarityPlayerIndex]) {
+                const firstIdx = loadedPlayers.findIndex(p => p !== null);
+                selectedRollingRarityPlayerIndex = firstIdx !== -1 ? firstIdx : 0;
+            }
+
+            container.innerHTML = '';
+            loadedPlayers.forEach((p, idx) => {
+                if (!p) return;
+                const isSelected = (idx === selectedRollingRarityPlayerIndex);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
+                    isSelected
+                        ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-600'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`;
+                btn.innerHTML = `
+                    <span class="w-2 h-2 rounded-full inline-block" style="background-color:${p.palette.color}"></span>
+                    <span>${p.name}</span>
+                `;
+                btn.onclick = () => {
+                    selectedRollingRarityPlayerIndex = idx;
+                    const active = loadedPlayers.filter(pl => pl !== null);
+                    const { filterDates } = getActiveFilterContext(active);
+                    renderRollingRarityPlayerTogglePills();
+                    renderPlotRollingRarity7(filterDates);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderPlotRollingRarity7(filterDates) {
+            const player = loadedPlayers[selectedRollingRarityPlayerIndex];
+            if (!player) return;
+
+            const badge = document.getElementById('rollingRarityActivePlayerBadge');
+            const dot = document.getElementById('rollingRarityPlayerDot');
+            const label = document.getElementById('rollingRarityPlayerLabel');
+
+            if (badge && dot && label) {
+                badge.style.borderColor = `${player.palette.color}66`;
+                badge.style.backgroundColor = `${player.palette.color}1A`;
+                badge.style.color = player.palette.color;
+                dot.style.backgroundColor = player.palette.color;
+                label.innerText = `Viewing: ${player.name} (Slot ${selectedRollingRarityPlayerIndex + 1})`;
+            }
+
+            const ctx = document.getElementById('chartPlotRollingRarity7').getContext('2d');
+            if (chartInstances['chartRollingRarity7']) chartInstances['chartRollingRarity7'].destroy();
+
+            const rarityKeys = ['Farflung', 'Elusive', 'Rare', 'Uncommon', 'Common', 'Miss'];
+
+            // Map each date to that player's expedition rarity counts (null if player did not play that date)
+            const expByDate = {};
+            player.expeditions.forEach(exp => {
+                const counts = { 'Farflung': 0, 'Elusive': 0, 'Rare': 0, 'Uncommon': 0, 'Common': 0, 'Miss': 0 };
+                (exp.pins || []).forEach(pin => {
+                    if (counts[pin.rarity] !== undefined) counts[pin.rarity]++;
+                });
+                expByDate[exp.day] = counts;
+            });
+
+            const datasets = rarityKeys.map(r => {
+                const col = RARITY_COLORS[r];
+                const rollingSeries = filterDates.map((d, idx) => {
+                    const windowDates = filterDates.slice(Math.max(0, idx - 6), idx + 1);
+                    const validExps = windowDates.map(wd => expByDate[wd]).filter(Boolean);
+                    if (validExps.length === 0) return null;
+                    const sum = validExps.reduce((acc, item) => acc + item[r], 0);
+                    return Number((sum / validExps.length).toFixed(2));
+                });
+
+                return {
+                    label: r,
+                    data: rollingSeries,
+                    borderColor: col,
+                    backgroundColor: col + '22',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    tension: 0,
+                    fill: false
+                };
+            });
+
+            chartInstances['chartRollingRarity7'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: filterDates,
+                    datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0',
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '500' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => `${player.name} — ${items[0].label}`,
+                                label: (c) => ` ${c.dataset.label}: ${Number(c.raw).toFixed(2)} pins/day (7d avg)`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8', maxTicksLimit: 11 }
+                        },
+                        y: {
+                            min: 0,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Avg Pins / Day (7d)',
+                                color: '#64748b'
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Rolling 7-Day Moving Average (Straight Segments)
+        function renderPlotRolling7(activePlayers, filterDates) {
+            const ctx = document.getElementById('chartPlotRolling7').getContext('2d');
+            if (chartInstances['chartRolling7']) chartInstances['chartRolling7'].destroy();
+
+            const datasets = activePlayers.map(p => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                const dateScoreMap = {};
+                exps.forEach(e => dateScoreMap[e.day] = e.distanceKm);
+
+                const rollingData = filterDates.map((d, idx) => {
+                    const windowDates = filterDates.slice(Math.max(0, idx - 6), idx + 1);
+                    const validScores = windowDates
+                        .map(wd => dateScoreMap[wd])
+                        .filter(val => val !== undefined && val !== null);
+                    if (validScores.length === 0) return null;
+                    const sum = validScores.reduce((a, b) => a + b, 0);
+                    return sum / validScores.length;
+                });
+
+                return {
+                    label: `${p.name} (7d Avg)`,
+                    data: rollingData,
+                    borderColor: p.palette.color,
+                    backgroundColor: p.palette.bg,
+                    borderWidth: 2.5,
+                    pointRadius: 2.5,
+                    tension: 0
+                };
+            });
+
+            chartInstances['chartRolling7'] = new Chart(ctx, {
+                type: 'line',
+                data: { labels: filterDates, datasets },
+                options: getMultiChartOptions('7-Day Moving Avg (km)')
+            });
+        }
+
+        // Hemisphere & Continental Accuracy Breakdown
+        function renderPlotGeoAccuracy(activePlayers, filterDates) {
+            const ctx = document.getElementById('chartPlotGeoAccuracy').getContext('2d');
+            if (chartInstances['chartGeoAccuracy']) chartInstances['chartGeoAccuracy'].destroy();
+
+            const categories = ['N. Hem', 'S. Hem', 'Europe', 'Asia', 'Americas', 'Africa', 'Oceania'];
+
+            const datasets = activePlayers.map(p => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                const pins = exps.flatMap(e => e.pins || []);
+
+                const stats = {};
+                categories.forEach(c => stats[c] = { hits: 0, total: 0 });
+
+                pins.forEach(pin => {
+                    const isHit = pin.success ? 1 : 0;
+                    if (pin.lat !== null && pin.lat !== undefined) {
+                        const hem = pin.lat >= 0 ? 'N. Hem' : 'S. Hem';
+                        stats[hem].total++;
+                        stats[hem].hits += isHit;
+                    }
+                    const region = inferPinRegion(pin);
+                    if (stats[region]) {
+                        stats[region].total++;
+                        stats[region].hits += isHit;
+                    }
+                });
+
+                return {
+                    label: p.name,
+                    data: categories.map(c => stats[c].total > 0 ? ((stats[c].hits / stats[c].total) * 100) : 0),
+                    backgroundColor: p.palette.color,
+                    borderRadius: 4
+                };
+            });
+
+            chartInstances['chartGeoAccuracy'] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: categories, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1', font: { size: 10 } } },
+                        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.raw.toFixed(1)}% hit rate` } }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { min: 0, beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: (v) => v + '%' } }
+                    }
+                }
+            });
+        }
+
+        // Clutch Difference / High-Variance Index (Standard Deviation)
+        function renderPlotVariance(activePlayers, filterDates) {
+            const ctx = document.getElementById('chartPlotVariance').getContext('2d');
+            if (chartInstances['chartVariance']) chartInstances['chartVariance'].destroy();
+
+            const playerStats = activePlayers.map(p => {
+                const exps = p.expeditions.filter(e => filterDates.includes(e.day));
+                const scores = exps.map(e => e.distanceKm);
+                const mean = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+                const variance = scores.length > 0 ? scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length : 0;
+                const stdDev = Math.sqrt(variance);
+                const minScore = scores.length > 0 ? Math.min(...scores) : 0;
+                const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
+
+                let archetype = 'Balanced';
+                let badgeClass = 'text-sky-400 bg-sky-500/10 border-sky-500/30';
+                if (stdDev >= 70) {
+                    archetype = 'Boom-or-Bust';
+                    badgeClass = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+                } else if (stdDev < 45) {
+                    archetype = 'Steady Anchor';
+                    badgeClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+                }
+
+                return { p, stdDev, minScore, maxScore, archetype, badgeClass };
+            });
+
+            chartInstances['chartVariance'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: playerStats.map(s => s.p.name),
+                    datasets: [{
+                        label: 'Score Std Dev (±km)',
+                        data: playerStats.map(s => Number(s.stdDev.toFixed(1))),
+                        backgroundColor: playerStats.map(s => s.p.palette.color),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => {
+                                    const st = playerStats[c.dataIndex];
+                                    return ` Std Dev: ±${st.stdDev.toFixed(1)} km (Range: ${st.minScore}–${st.maxScore} km)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: {
+                            min: 0,
+                            beginAtZero: true,
+                            title: { display: true, text: 'Std Dev (±km)', color: '#64748b', font: { size: 10 } },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+            const badgesEl = document.getElementById('varianceBadgesGrid');
+            if (badgesEl) {
+                badgesEl.innerHTML = '';
+                playerStats.forEach(st => {
+                    badgesEl.innerHTML += `
+                        <div class="bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-1">
+                            <div class="truncate">
+                                <span class="font-bold" style="color:${st.p.palette.color}">${st.p.name}</span>
+                                <span class="text-slate-400 ml-1">±${st.stdDev.toFixed(0)}km</span>
+                            </div>
+                            <span class="px-1.5 py-0.5 rounded border text-[10px] font-semibold whitespace-nowrap ${st.badgeClass}">${st.archetype}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // Country Diversity & Favorite Pick Concentration
+        function renderDiversityPlayerTogglePills() {
+            const container = document.getElementById('diversityPlayerPills');
+            if (!container) return;
+
+            if (!loadedPlayers[selectedDiversityPlayerIndex]) {
+                const firstIdx = loadedPlayers.findIndex(p => p !== null);
+                selectedDiversityPlayerIndex = firstIdx !== -1 ? firstIdx : 0;
+            }
+
+            container.innerHTML = '';
+            loadedPlayers.forEach((p, idx) => {
+                if (!p) return;
+                const isSelected = (idx === selectedDiversityPlayerIndex);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
+                    isSelected
+                        ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-600'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`;
+                btn.innerHTML = `
+                    <span class="w-2 h-2 rounded-full inline-block" style="background-color:${p.palette.color}"></span>
+                    <span>${p.name}</span>
+                `;
+                btn.onclick = () => {
+                    selectedDiversityPlayerIndex = idx;
+                    const active = loadedPlayers.filter(pl => pl !== null);
+                    const { filterDates } = getActiveFilterContext(active);
+                    renderDiversityPlayerTogglePills();
+                    renderCountryDiversityCard(filterDates);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderCountryDiversityCard(filterDates) {
+            const player = loadedPlayers[selectedDiversityPlayerIndex];
+            if (!player) return;
+
+            const badge = document.getElementById('diversityActiveBadge');
+            const dot = document.getElementById('diversityPlayerDot');
+            const label = document.getElementById('diversityPlayerLabel');
+            if (badge && dot && label) {
+                badge.style.borderColor = `${player.palette.color}66`;
+                badge.style.backgroundColor = `${player.palette.color}1A`;
+                badge.style.color = player.palette.color;
+                dot.style.backgroundColor = player.palette.color;
+                label.innerText = player.name;
+            }
+
+            const exps = player.expeditions.filter(e => filterDates.includes(e.day));
+            const pins = exps.flatMap(e => e.pins || []);
+            const totalPins = pins.length;
+
+            const countryStats = {};
+            pins.forEach(pin => {
+                const code = (pin.countedAs || pin.answer || 'UNK').toUpperCase();
+                if (!countryStats[code]) {
+                    countryStats[code] = { code, total: 0, hits: 0, misses: 0 };
+                }
+                countryStats[code].total++;
+                if (pin.success) countryStats[code].hits++;
+                else countryStats[code].misses++;
+            });
+
+            const uniqueCountries = Object.keys(countryStats).filter(c => c !== 'UNK');
+            const diversityIndex = totalPins > 0 ? ((uniqueCountries.length / totalPins) * 100) : 0;
+
+            const sortedCountries = Object.values(countryStats)
+                .filter(c => c.code !== 'UNK')
+                .sort((a, b) => b.total - a.total || b.hits - a.hits);
+
+            const top5 = sortedCountries.slice(0, 5);
+            const topPickShare = (totalPins > 0 && top5.length > 0) ? ((top5[0].total / totalPins) * 100) : 0;
+
+            document.getElementById('divUniqueCountries').innerText = `${uniqueCountries.length} / ${totalPins}`;
+            document.getElementById('divIndexPct').innerText = `${diversityIndex.toFixed(1)}%`;
+            document.getElementById('divTopPickShare').innerText = top5.length > 0 ? `${top5[0].code} (${topPickShare.toFixed(1)}%)` : '0%';
+
+            const listEl = document.getElementById('topCountriesList');
+            listEl.innerHTML = '';
+
+            if (top5.length === 0) {
+                listEl.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">No country pins available for selected dates.</div>';
+                return;
+            }
+
+            const maxCount = top5[0].total || 1;
+            top5.forEach((item, idx) => {
+                const meta = COUNTRY_META[item.code];
+                const displayName = meta ? `${meta.name} (${item.code})` : item.code;
+                const sharePct = totalPins > 0 ? ((item.total / totalPins) * 100).toFixed(1) : '0.0';
+                const barWidth = Math.max(12, (item.total / maxCount) * 100);
+
+                listEl.innerHTML += `
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-4 h-4 rounded-md bg-slate-800 text-slate-300 text-[10px] font-bold flex items-center justify-center">#${idx + 1}</span>
+                                <span class="font-semibold text-slate-200">${displayName}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-[11px]">
+                                <span class="text-slate-300 font-bold">${item.total} pins</span>
+                                <span class="text-emerald-400">(${item.hits}H</span>
+                                <span class="text-rose-400">/ ${item.misses}M)</span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold">${sharePct}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500" style="width: ${barWidth}%; background-color: ${player.palette.color}"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Daily Head-to-Head Matrix (Win / Tie / Loss Record)
+        function renderH2HMatrix(activePlayers, filterDates) {
+            const container = document.getElementById('h2hMatrixContainer');
+            if (!container) return;
+
+            if (activePlayers.length < 2) {
+                container.innerHTML = `
+                    <div class="p-8 text-center space-y-2 bg-slate-950/50">
+                        <i class="fa-solid fa-users-between-lines text-2xl text-slate-600"></i>
+                        <p class="text-xs font-medium text-slate-300">Load 2 or more players to unlock the Head-to-Head W-T-L Matrix.</p>
+                        <p class="text-[11px] text-slate-500">Click "Load Demo 4-Player Stats" in the top bar or upload another player's JSON file.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<table class="w-full text-xs text-left border-collapse">`;
+            html += `<thead class="bg-slate-950 text-[11px] uppercase text-slate-400 border-b border-slate-800"><tr><th class="px-3 py-2.5 font-semibold">Player vs.</th>`;
+            activePlayers.forEach(colP => {
+                html += `<th class="px-3 py-2.5 font-bold text-center" style="color:${colP.palette.color}">${colP.name}</th>`;
+            });
+            html += `<th class="px-3 py-2.5 font-semibold text-center text-slate-300">Overall</th></tr></thead><tbody class="divide-y divide-slate-800/70 bg-slate-900/40">`;
+
+            activePlayers.forEach(rowP => {
+                let totalW = 0, totalT = 0, totalL = 0;
+                html += `<tr class="hover:bg-slate-800/30 transition"><td class="px-3 py-3 font-bold whitespace-nowrap" style="color:${rowP.palette.color}">${rowP.name}</td>`;
+
+                activePlayers.forEach(colP => {
+                    if (rowP.name === colP.name) {
+                        html += `<td class="px-3 py-3 text-center text-slate-600 bg-slate-950/40 font-mono">&mdash;</td>`;
+                    } else {
+                        let w = 0, t = 0, l = 0, diffSum = 0, sharedCount = 0;
+                        filterDates.forEach(d => {
+                            const expA = rowP.expeditions.find(e => e.day === d);
+                            const expB = colP.expeditions.find(e => e.day === d);
+                            if (expA && expB) {
+                                sharedCount++;
+                                const diff = expA.distanceKm - expB.distanceKm;
+                                diffSum += diff;
+                                if (diff > 0) w++;
+                                else if (diff < 0) l++;
+                                else t++;
+                            }
+                        });
+                        totalW += w; totalT += t; totalL += l;
+                        const avgMargin = sharedCount > 0 ? (diffSum / sharedCount) : 0;
+                        const marginStr = avgMargin > 0 ? `+${avgMargin.toFixed(1)} km` : `${avgMargin.toFixed(1)} km`;
+                        const marginColor = avgMargin > 0 ? 'text-emerald-400' : (avgMargin < 0 ? 'text-rose-400' : 'text-slate-400');
+
+                        html += `
+                            <td class="px-2.5 py-2.5 text-center">
+                                <div class="font-bold text-slate-100">${w}W - ${t}T - ${l}L</div>
+                                <div class="text-[10px] font-medium ${marginColor}">${marginStr} avg</div>
+                            </td>
+                        `;
+                    }
+                });
+
+                const winPct = (totalW + totalT + totalL) > 0 ? ((totalW / (totalW + totalT + totalL)) * 100).toFixed(0) : 0;
+                html += `
+                    <td class="px-3 py-2.5 text-center bg-slate-950/30">
+                        <div class="font-bold text-slate-200">${totalW}-${totalT}-${totalL}</div>
+                        <div class="text-[10px] text-indigo-400 font-semibold">${winPct}% Win</div>
+                    </td>
+                </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        // Plot 1: Daily Score Line Chart (Straight Segments, Starts at Y=0)
         function renderPlot1(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot1').getContext('2d');
             if (chartInstances['chart1']) chartInstances['chart1'].destroy();
@@ -1054,7 +2214,7 @@
                     backgroundColor: p.palette.bg,
                     borderWidth: 2,
                     pointRadius: 2.5,
-                    tension: 0.2
+                    tension: 0
                 };
             });
 
@@ -1065,7 +2225,7 @@
             });
         }
 
-        // Plot 2: Cumulative Average (Starts at Y=0)
+        // Plot 2: Cumulative Average (Straight Segments, Starts at Y=0)
         function renderPlot2(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot2').getContext('2d');
             if (chartInstances['chart2']) chartInstances['chart2'].destroy();
@@ -1085,8 +2245,8 @@
                     borderColor: p.palette.color,
                     borderDash: [4, 4],
                     borderWidth: 2,
-                    pointRadius: 2,
-                    tension: 0.2
+                    pointRadius: 2.5,
+                    tension: 0
                 };
             });
 
@@ -1097,7 +2257,7 @@
             });
         }
 
-        // Cumulative Target & Pace Projection Line Chart (Starts at Y=0)
+        // Cumulative Target & Pace Projection Line Chart (Straight Segments, Starts at Y=0)
         function renderPlotTargetPace(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotTargetPace').getContext('2d');
             if (chartInstances['chartTargetPace']) chartInstances['chartTargetPace'].destroy();
@@ -1112,7 +2272,8 @@
                     borderColor: '#10b981',
                     borderDash: [6, 6],
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    tension: 0
                 },
                 ...activePlayers.map(p => {
                     let run = 0;
@@ -1127,8 +2288,8 @@
                         borderColor: p.palette.color,
                         backgroundColor: p.palette.bg,
                         borderWidth: 2.5,
-                        pointRadius: 2,
-                        tension: 0.1
+                        pointRadius: 2.5,
+                        tension: 0
                     };
                 })
             ];
@@ -1140,7 +2301,7 @@
             });
         }
 
-        // Round-by-Round Success Rate & Avg Distance (Starts at Y=0)
+        // Round-by-Round Success Rate (Starts at Y=0)
         function renderPlotRounds(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotRounds').getContext('2d');
             if (chartInstances['chartRounds']) chartInstances['chartRounds'].destroy();
@@ -1181,7 +2342,7 @@
             });
         }
 
-        // Plot 5: Multi-Player Gaussian Score Bin Probability Curves (0 to 500 Range, Starts at Y=0)
+        // Plot 5: Multi-Player Gaussian Score Bin Probability Curves (Straight Segments, Starts at Y=0)
         function renderPlot5(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot5').getContext('2d');
             if (chartInstances['chart5']) chartInstances['chart5'].destroy();
@@ -1204,7 +2365,7 @@
                     backgroundColor: p.palette.bg,
                     borderWidth: 2,
                     pointRadius: 2,
-                    tension: 0.4,
+                    tension: 0,
                     fill: true
                 };
             });
@@ -1349,7 +2510,7 @@
             });
         }
 
-        // Plot 6: Overlaid Radar Chart (Starts at 0)
+        // Plot 6: Overlaid Radar Chart (Straight Lines, Starts at 0)
         function renderPlot6(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot6').getContext('2d');
             if (chartInstances['chart6']) chartInstances['chart6'].destroy();
@@ -1377,7 +2538,8 @@
                     borderColor: p.palette.color,
                     backgroundColor: p.palette.bg,
                     borderWidth: 2,
-                    pointBackgroundColor: p.palette.color
+                    pointBackgroundColor: p.palette.color,
+                    tension: 0
                 };
             });
 
@@ -1446,42 +2608,44 @@
 
             activePlayers.forEach(p => {
                 const exps = p.expeditions.filter(e => filterDates.includes(e.day));
-                exps.flatMap(e => e.pins || []).forEach(pin => {
-                    if (pin.lat !== null && pin.lat !== undefined && pin.lon !== null && pin.lon !== undefined) {
-                        const color = RARITY_COLORS[pin.rarity] || '#9E9E9E';
+                exps.forEach(exp => {
+                    (exp.pins || []).forEach(pin => {
+                        if (pin.lat !== null && pin.lat !== undefined && pin.lon !== null && pin.lon !== undefined) {
+                            const color = RARITY_COLORS[pin.rarity] || '#9E9E9E';
 
-                        const marker = L.circleMarker([pin.lat, pin.lon], {
-                            radius: 5.5,
-                            fillColor: color,
-                            color: p.palette.color,
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.85
-                        });
+                            const marker = L.circleMarker([pin.lat, pin.lon], {
+                                radius: 5.5,
+                                fillColor: color,
+                                color: p.palette.color,
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.85
+                            });
 
-                        marker.rarityCategory = pin.rarity;
-                        marker.playerName = p.name;
-                        marker.lat = pin.lat;
-                        marker.lon = pin.lon;
+                            marker.rarityCategory = pin.rarity;
+                            marker.playerName = p.name;
+                            marker.lat = pin.lat;
+                            marker.lon = pin.lon;
 
-                        const popupHTML = `
-                            <div class="space-y-1.5 text-xs font-sans">
-                                <div class="flex items-center justify-between gap-2 border-b border-slate-700 pb-1">
-                                    <span class="font-bold text-slate-100" style="color:${p.palette.color}">${p.name}</span>
-                                    <span class="font-semibold text-slate-400">${pin.day}</span>
+                            const popupHTML = `
+                                <div class="space-y-1.5 text-xs font-sans">
+                                    <div class="flex items-center justify-between gap-2 border-b border-slate-700 pb-1">
+                                        <span class="font-bold text-slate-100" style="color:${p.palette.color}">${p.name}</span>
+                                        <span class="font-semibold text-slate-400">${exp.day}</span>
+                                    </div>
+                                    <p class="font-medium text-slate-100">${pin.cardText}</p>
+                                    <div class="text-[11px] text-slate-400">
+                                        <div><strong class="text-slate-300">Rarity:</strong> <span style="color:${color}">${pin.rarity}</span></div>
+                                        <div><strong class="text-slate-300">Target/Pinned:</strong> ${pin.countedAs || 'N/A'}</div>
+                                        <div><strong class="text-slate-300">Score:</strong> <span class="text-emerald-400 font-bold">${pin.distanceKm} km</span> (${pin.points} pts)</div>
+                                    </div>
                                 </div>
-                                <p class="font-medium text-slate-100">${pin.cardText}</p>
-                                <div class="text-[11px] text-slate-400">
-                                    <div><strong class="text-slate-300">Rarity:</strong> <span style="color:${color}">${pin.rarity}</span></div>
-                                    <div><strong class="text-slate-300">Target/Pinned:</strong> ${pin.countedAs || 'N/A'}</div>
-                                    <div><strong class="text-slate-300">Score:</strong> <span class="text-emerald-400 font-bold">${pin.distanceKm} km</span> (${pin.points} pts)</div>
-                                </div>
-                            </div>
-                        `;
+                            `;
 
-                        marker.bindPopup(popupHTML);
-                        mapMarkers.push(marker);
-                    }
+                            marker.bindPopup(popupHTML);
+                            mapMarkers.push(marker);
+                        }
+                    });
                 });
             });
 
@@ -1534,7 +2698,7 @@
             updateMapLayers();
         }
 
-        // Section 5: Daily Multi-Player Score Table
+        // Section 7: Daily Multi-Player Score Table
         function renderDailyTable(activePlayers, filterDates) {
             const thead = document.getElementById('dailyTableHead');
             const tbody = document.getElementById('dailyTableBody');
