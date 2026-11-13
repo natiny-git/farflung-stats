@@ -786,6 +786,10 @@
                         <option value="ALL">All Active Players</option>
                     </select>
 
+                    <select id="mapCategoryFilter" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 focus:outline-none focus:border-indigo-500">
+                        <option value="ALL">All Categories</option>
+                    </select>
+
                     <div class="flex items-center gap-1">
                         <button class="map-filter-btn px-2 py-0.5 rounded-full border border-amber-500/50 bg-amber-500/10 text-amber-300 text-[11px]" data-rarity="Farflung">Farflung</button>
                         <button class="map-filter-btn px-2 py-0.5 rounded-full border border-purple-500/50 bg-purple-500/10 text-purple-300 text-[11px]" data-rarity="Elusive">Elusive</button>
@@ -803,7 +807,7 @@
             </div>
 
             <div class="card-help-drawer hidden bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3 text-xs text-slate-300 leading-relaxed">
-                Interactive world map plotting exact pin drop coordinates. Marker fill indicates pin rarity while the outer ring identifies the player. Filter by player or rarity tier, or enable the Density Heatmap overlay.
+                Interactive world map plotting exact pin drop coordinates. Marker fill indicates pin rarity while the outer ring identifies the player. Filter by player, trivia category, or rarity tier, or enable the Density Heatmap overlay.
             </div>
 
             <!-- Leaflet Container -->
@@ -1339,8 +1343,12 @@
                 btn.addEventListener('click', () => filterMapMarkers(btn.getAttribute('data-rarity')));
             });
 
-            document.getElementById('btnResetMapFilters').addEventListener('click', () => filterMapMarkers(null));
+            document.getElementById('btnResetMapFilters').addEventListener('click', () => {
+                document.getElementById('mapCategoryFilter').value = 'ALL';
+                filterMapMarkers(null);
+            });
             document.getElementById('mapPlayerFilter').addEventListener('change', () => filterMapMarkers(null));
+            document.getElementById('mapCategoryFilter').addEventListener('change', () => updateMapLayers());
 
             // Map Layer Toggle Checkboxes
             document.getElementById('togglePinMarkers').addEventListener('change', updateMapLayers);
@@ -1733,6 +1741,16 @@
             active.forEach(p => {
                 mapSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
             });
+
+            const catSelect = document.getElementById('mapCategoryFilter');
+            if (catSelect) {
+                const currentCat = catSelect.value || 'ALL';
+                catSelect.innerHTML = '<option value="ALL">All Categories</option>';
+                TRIVIA_CATEGORIES.forEach(cat => {
+                    catSelect.innerHTML += `<option value="${cat.id}">${cat.label}</option>`;
+                });
+                catSelect.value = currentCat;
+            }
         }
 
         // Head-to-Head KPI Summary Cards
@@ -3054,7 +3072,8 @@
                     (exp.pins || []).forEach(pin => {
                         if (pin.lat !== null && pin.lat !== undefined && pin.lon !== null && pin.lon !== undefined) {
                             const color = RARITY_COLORS[pin.rarity] || '#9E9E9E';
-                            const topicLabel = (pin.topic || classifyCardTopic(pin)).label;
+                            const topicObj = pin.topic || classifyCardTopic(pin);
+                            const topicLabel = topicObj.label;
 
                             const marker = L.circleMarker([pin.lat, pin.lon], {
                                 radius: 5.5,
@@ -3067,6 +3086,7 @@
 
                             marker.rarityCategory = pin.rarity;
                             marker.playerName = p.name;
+                            marker.categoryId = topicObj.id;
                             marker.lat = pin.lat;
                             marker.lon = pin.lon;
 
@@ -3101,14 +3121,16 @@
             const showHeat = document.getElementById('toggleHeatmap').checked;
             const rFilter = document.querySelector('.map-filter-btn.active')?.getAttribute('data-rarity') || null;
             const pFilter = document.getElementById('mapPlayerFilter').value;
+            const cFilter = document.getElementById('mapCategoryFilter')?.value || 'ALL';
 
             const filteredHeatPoints = [];
 
             mapMarkers.forEach(m => {
                 const matchR = (rFilter === null || m.rarityCategory === rFilter);
                 const matchP = (pFilter === 'ALL' || m.playerName === pFilter);
+                const matchC = (cFilter === 'ALL' || m.categoryId === cFilter);
                 
-                if (matchR && matchP) {
+                if (matchR && matchP && matchC) {
                     if (showPins) m.addTo(leafletMap);
                     else leafletMap.removeLayer(m);
                     
