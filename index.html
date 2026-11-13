@@ -36,6 +36,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase Compat SDKs (App, Auth, Realtime Database) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -70,7 +74,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-100 tracking-tight leading-none">Farflung Analytics</h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Multi-Player Head-to-Head Comparison & Advanced Metrics</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Multi-Player Head-to-Head Comparison &amp; Advanced Metrics</p>
                 </div>
             </div>
 
@@ -93,12 +97,12 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
 
-        <!-- Controls Bar: Upload Slots, Date Range & Shared Days Filter -->
+        <!-- Controls Bar: Firebase Cloud Sync, Upload Slots, Date Range & Shared Days Filter -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4 no-print">
             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
                     <i class="fa-solid fa-folder-open text-indigo-400"></i>
-                    <span>Player JSON Data Slots & Comparison Filters</span>
+                    <span>Player JSON Data Slots &amp; Comparison Filters</span>
                 </h2>
 
                 <div class="flex flex-wrap items-center gap-3">
@@ -123,61 +127,159 @@
                 </div>
             </div>
 
-            <!-- Player Slots Grid -->
+            <!-- Firebase Cloud Sync, Google Account & Anonymous Room Bar -->
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                    <!-- Left: Auth Status, Signed-In Google Pill, Room Switcher & Synced Log Count -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <span id="firebaseStatusBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-slate-700 bg-slate-900 text-slate-400">
+                            <span id="firebaseStatusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span id="firebaseStatusText">Connecting...</span>
+                        </span>
+
+                        <!-- Signed-In Google User Pill -->
+                        <div id="googleUserPill" class="hidden items-center space-x-2 bg-indigo-950/70 border border-indigo-500/40 rounded-full pl-1.5 pr-3 py-0.5 text-xs">
+                            <img id="googleUserAvatar" src="" alt="Avatar" class="w-5 h-5 rounded-full object-cover hidden" onerror="this.style.display='none'">
+                            <span id="googleUserFallbackIcon" class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">G</span>
+                            <div class="flex items-center space-x-1.5">
+                                <span id="googleUserName" class="font-semibold text-slate-100"></span>
+                                <span id="googleUserEmail" class="text-[11px] text-slate-400 hidden sm:inline"></span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">&#10003; Google Linked</span>
+                            </div>
+                        </div>
+
+                        <!-- Shared / Anonymous Room Switcher -->
+                        <div class="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs">
+                            <i class="fa-solid fa-door-open text-indigo-400"></i>
+                            <span class="text-slate-400 font-medium">Room:</span>
+                            <input type="text" id="firebaseRoomInput" value="farflung-friends" placeholder="Room code..." class="bg-transparent text-slate-100 font-semibold focus:outline-none w-28 sm:w-36" />
+                            <button type="button" id="btnConnectRoom" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition">Join Room</button>
+                        </div>
+
+                        <span id="cloudLogCountBadge" class="text-[11px] text-slate-400">
+                            0 logs synced
+                        </span>
+                    </div>
+
+                    <!-- Right: Toast Message, Google Sign-In / Sign-Out & Multi-File Cloud Upload -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span id="firebaseToastMsg" class="text-xs font-medium text-emerald-400"></span>
+
+                        <button type="button" id="btnGoogleSignIn" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-semibold shadow-sm transition flex items-center space-x-2">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"/>
+                                <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"/>
+                                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"/>
+                            </svg>
+                            <span>Sign in with Google</span>
+                        </button>
+
+                        <button type="button" id="btnGoogleSignOut" class="hidden px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-medium transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-right-from-bracket text-slate-400"></i>
+                            <span>Sign Out (Use Anon Room)</span>
+                        </button>
+
+                        <button type="button" onclick="document.getElementById('cloudDirectUploadInput').click()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-sm shadow-emerald-600/20 transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span id="uploadBtnLabel">Upload JSON(s) to Room</span>
+                        </button>
+                        <input type="file" id="cloudDirectUploadInput" accept=".json" multiple class="hidden" onchange="handleDirectCloudUpload(event)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player Slots Grid (Max 4 Players) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Slot 1 (Default Preloaded) -->
-                <div class="border border-indigo-500/50 bg-indigo-500/10 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative group" onclick="document.getElementById('fileInput1').click()">
-                    <div class="flex items-center justify-between text-xs font-semibold text-indigo-400 mb-2">
-                        <span id="labelPlayer1">Adam (Player 1)</span>
+                <!-- Slot 1 -->
+                <div id="slotCard1" class="border border-indigo-500/50 bg-indigo-500/10 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative group space-y-2.5">
+                    <div class="flex items-center justify-between text-xs font-semibold text-indigo-400">
+                        <span id="labelPlayer1" class="truncate">Adam (Player 1)</span>
                         <i class="fa-solid fa-circle text-[10px]" style="color: #4285F4;"></i>
                     </div>
-                    <div class="space-y-1">
-                        <i class="fa-solid fa-user-check text-lg text-indigo-400"></i>
+                    <div class="space-y-1 cursor-pointer py-0.5" onclick="document.getElementById('fileInput1').click()">
+                        <i id="iconSlot1" class="fa-solid fa-user-check text-lg text-indigo-400"></i>
                         <p id="fileName1" class="text-xs text-slate-200 font-medium truncate">Pre-loaded Data</p>
+                        <span id="playerIdBadge1" class="inline-block px-2 py-0.5 rounded bg-slate-950/80 border border-slate-800 text-[10px] font-mono text-slate-400">ID: local-sample</span>
+                    </div>
+                    <div class="pt-1 border-t border-slate-800/80 space-y-1.5" onclick="event.stopPropagation()">
+                        <select id="cloudSelect1" onchange="selectDatabasePlayerForSlot(0, this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="">Select player log...</option>
+                        </select>
+                        <button type="button" onclick="document.getElementById('fileInput1').click()" class="w-full py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-700/80 transition">
+                            <i class="fa-solid fa-upload mr-1"></i>Upload JSON to Slot
+                        </button>
                     </div>
                     <input type="file" id="fileInput1" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 0)">
                 </div>
 
                 <!-- Slot 2 -->
-                <div id="slotCard2" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-rose-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput2').click()">
-                    <div class="flex items-center justify-between text-xs font-semibold text-rose-400 mb-2">
-                        <span id="labelPlayer2">Player 2</span>
+                <div id="slotCard2" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-rose-500/50 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative space-y-2.5">
+                    <div class="flex items-center justify-between text-xs font-semibold text-rose-400 pr-5">
+                        <span id="labelPlayer2" class="truncate">Player 2</span>
                         <i class="fa-solid fa-circle text-[10px]" style="color: #EA4335;"></i>
                     </div>
-                    <div class="space-y-1 py-1">
+                    <div class="space-y-1 cursor-pointer py-0.5" onclick="document.getElementById('fileInput2').click()">
                         <i id="iconSlot2" class="fa-solid fa-plus text-lg text-slate-500"></i>
                         <p id="fileName2" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                        <span id="playerIdBadge2" class="hidden inline-block px-2 py-0.5 rounded bg-slate-950/80 border border-slate-800 text-[10px] font-mono text-slate-400"></span>
+                    </div>
+                    <div class="pt-1 border-t border-slate-800/80 space-y-1.5" onclick="event.stopPropagation()">
+                        <select id="cloudSelect2" onchange="selectDatabasePlayerForSlot(1, this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-rose-500">
+                            <option value="">Select player log...</option>
+                        </select>
+                        <button type="button" onclick="document.getElementById('fileInput2').click()" class="w-full py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-700/80 transition">
+                            <i class="fa-solid fa-upload mr-1"></i>Upload JSON to Slot
+                        </button>
                     </div>
                     <input type="file" id="fileInput2" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 1)">
-                    <button id="btnClearSlot2" class="hidden absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs px-1" onclick="clearSlot(event, 1)"><i class="fa-solid fa-xmark"></i></button>
+                    <button id="btnClearSlot2" class="hidden absolute top-2.5 right-2.5 text-slate-500 hover:text-rose-400 text-xs px-1" onclick="clearSlot(event, 1)" title="Clear Slot"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <!-- Slot 3 -->
-                <div id="slotCard3" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-amber-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput3').click()">
-                    <div class="flex items-center justify-between text-xs font-semibold text-amber-400 mb-2">
-                        <span id="labelPlayer3">Player 3</span>
+                <div id="slotCard3" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-amber-500/50 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative space-y-2.5">
+                    <div class="flex items-center justify-between text-xs font-semibold text-amber-400 pr-5">
+                        <span id="labelPlayer3" class="truncate">Player 3</span>
                         <i class="fa-solid fa-circle text-[10px]" style="color: #FBBC05;"></i>
                     </div>
-                    <div class="space-y-1 py-1">
+                    <div class="space-y-1 cursor-pointer py-0.5" onclick="document.getElementById('fileInput3').click()">
                         <i id="iconSlot3" class="fa-solid fa-plus text-lg text-slate-500"></i>
                         <p id="fileName3" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                        <span id="playerIdBadge3" class="hidden inline-block px-2 py-0.5 rounded bg-slate-950/80 border border-slate-800 text-[10px] font-mono text-slate-400"></span>
+                    </div>
+                    <div class="pt-1 border-t border-slate-800/80 space-y-1.5" onclick="event.stopPropagation()">
+                        <select id="cloudSelect3" onchange="selectDatabasePlayerForSlot(2, this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-amber-500">
+                            <option value="">Select player log...</option>
+                        </select>
+                        <button type="button" onclick="document.getElementById('fileInput3').click()" class="w-full py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-700/80 transition">
+                            <i class="fa-solid fa-upload mr-1"></i>Upload JSON to Slot
+                        </button>
                     </div>
                     <input type="file" id="fileInput3" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 2)">
-                    <button id="btnClearSlot3" class="hidden absolute top-2 right-2 text-slate-500 hover:text-amber-400 text-xs px-1" onclick="clearSlot(event, 2)"><i class="fa-solid fa-xmark"></i></button>
+                    <button id="btnClearSlot3" class="hidden absolute top-2.5 right-2.5 text-slate-500 hover:text-amber-400 text-xs px-1" onclick="clearSlot(event, 2)" title="Clear Slot"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <!-- Slot 4 -->
-                <div id="slotCard4" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-emerald-500/50 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative" onclick="document.getElementById('fileInput4').click()">
-                    <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 mb-2">
-                        <span id="labelPlayer4">Player 4</span>
+                <div id="slotCard4" class="border border-dashed border-slate-700 bg-slate-900/50 hover:border-emerald-500/50 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative space-y-2.5">
+                    <div class="flex items-center justify-between text-xs font-semibold text-emerald-400 pr-5">
+                        <span id="labelPlayer4" class="truncate">Player 4</span>
                         <i class="fa-solid fa-circle text-[10px]" style="color: #34A853;"></i>
                     </div>
-                    <div class="space-y-1 py-1">
+                    <div class="space-y-1 cursor-pointer py-0.5" onclick="document.getElementById('fileInput4').click()">
                         <i id="iconSlot4" class="fa-solid fa-plus text-lg text-slate-500"></i>
                         <p id="fileName4" class="text-xs text-slate-500 font-medium truncate">No Data Loaded</p>
+                        <span id="playerIdBadge4" class="hidden inline-block px-2 py-0.5 rounded bg-slate-950/80 border border-slate-800 text-[10px] font-mono text-slate-400"></span>
+                    </div>
+                    <div class="pt-1 border-t border-slate-800/80 space-y-1.5" onclick="event.stopPropagation()">
+                        <select id="cloudSelect4" onchange="selectDatabasePlayerForSlot(3, this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-500">
+                            <option value="">Select player log...</option>
+                        </select>
+                        <button type="button" onclick="document.getElementById('fileInput4').click()" class="w-full py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-700/80 transition">
+                            <i class="fa-solid fa-upload mr-1"></i>Upload JSON to Slot
+                        </button>
                     </div>
                     <input type="file" id="fileInput4" accept=".json" class="hidden" onchange="handlePlayerUpload(event, 3)">
-                    <button id="btnClearSlot4" class="hidden absolute top-2 right-2 text-slate-500 hover:text-emerald-400 text-xs px-1" onclick="clearSlot(event, 3)"><i class="fa-solid fa-xmark"></i></button>
+                    <button id="btnClearSlot4" class="hidden absolute top-2.5 right-2.5 text-slate-500 hover:text-emerald-400 text-xs px-1" onclick="clearSlot(event, 3)" title="Clear Slot"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
         </div>
@@ -356,9 +458,7 @@
 
                     <!-- Player Selector Pills + Expand Toggle -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <div id="rarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
-                            <!-- Dynamically populated player buttons -->
-                        </div>
+                        <div id="rarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1"></div>
 
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition ml-1" title="Expand View">
                             <i class="fa-solid fa-expand expand-icon"></i>
@@ -389,9 +489,7 @@
 
                     <!-- Player Selector Pills + Expand Toggle -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <div id="rollingRarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
-                            <!-- Dynamically populated player buttons -->
-                        </div>
+                        <div id="rollingRarityPlayerPills" class="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1"></div>
 
                         <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition ml-1" title="Expand View">
                             <i class="fa-solid fa-expand expand-icon"></i>
@@ -554,7 +652,7 @@
             <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 relative transition-all duration-300" data-chart-id="chartGeoAccuracy">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-1.5">
-                        <h3 class="text-sm font-semibold text-slate-200">Hemisphere & Continental Accuracy</h3>
+                        <h3 class="text-sm font-semibold text-slate-200">Hemisphere &amp; Continental Accuracy</h3>
                         <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -602,7 +700,7 @@
             <div class="chart-card info-card bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 relative transition-all duration-300" data-chart-id="cardCountryDiversity">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div class="flex items-center space-x-2">
-                        <h3 class="text-sm font-semibold text-slate-200">Country Diversity & Favorite Picks</h3>
+                        <h3 class="text-sm font-semibold text-slate-200">Country Diversity &amp; Favorite Picks</h3>
                         <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain card">?</button>
                         <span id="diversityActiveBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
                             <span id="diversityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -657,7 +755,7 @@
                             <h3 class="text-sm font-semibold text-slate-200">Daily Head-to-Head Matrix (W - T - L)</h3>
                             <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain matrix">?</button>
                         </div>
-                        <p class="text-xs text-slate-400">Direct pairwise records & average margin differential (km) on shared dates.</p>
+                        <p class="text-xs text-slate-400">Direct pairwise records &amp; average margin differential (km) on shared dates.</p>
                     </div>
                     <button onclick="toggleExpandCard(this)" class="text-slate-400 hover:text-white text-xs p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Expand View">
                         <i class="fa-solid fa-expand expand-icon"></i>
@@ -853,7 +951,7 @@
     <div id="modalBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 hidden transition-opacity duration-300" onclick="closeExpandedModal()"></div>
 
     <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 text-center text-xs text-slate-600">
-        <p>Farflung Interactive Multi-Player Analytics Dashboard &bull; Built with Chart.js & Leaflet.js</p>
+        <p>Farflung Interactive Multi-Player Analytics Dashboard &bull; Built with Chart.js, Leaflet.js &amp; Firebase</p>
     </footer>
 
     <!-- Main Application Logic -->
@@ -882,6 +980,583 @@
             { name: 'Jakob', color: '#FBBC05', bg: 'rgba(251, 188, 5, 0.2)' },
             { name: 'Nathan', color: '#34A853', bg: 'rgba(52, 168, 83, 0.2)' }
         ];
+
+        // =========================================================================
+        // FIREBASE REALTIME DATABASE & DUAL-MODE AUTH (Google Account + Anon Rooms)
+        // =========================================================================
+        const DEFAULT_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDqDKHlnOzAkwwIq-TLrtmI8FbC4GuhO6o",
+            authDomain: "farflung-analytics.firebaseapp.com",
+            databaseURL: "https://farflung-analytics-default-rtdb.firebaseio.com",
+            projectId: "farflung-analytics",
+            storageBucket: "farflung-analytics.firebasestorage.app",
+            messagingSenderId: "45509447817",
+            appId: "1:45509447817:web:4a6db608ac0322cdab7658",
+            measurementId: "G-LT837ZC9DZ"
+        };
+        const DEFAULT_ROOM_CODE = "farflung-friends";
+        const STORAGE_KEY_FB_ROOM = "farflung_firebase_room_v1";
+
+        let firebaseDb = null;
+        let firebaseAuth = null;
+        let firebaseConnected = false;
+        let currentFirebaseUser = null;
+        let activeRoomRef = null;
+        let activeGoogleUserLogsRef = null;
+
+        let roomLogsById = {};       // { [safePlayerId]: logEntry } from rooms/<roomCode>/players
+        let googleUserLogsById = {}; // { [safePlayerId]: logEntry } from users/<uid>/logs
+        let slotSelectedCloudIds = [null, null, null, null]; // Stores composite keys: "room:<key>", "google:<key>", or "__LOCAL_SAMPLE__"
+
+        function sanitizeFirebaseKey(rawKey) {
+            return String(rawKey || 'unknown-player').trim().replace(/[.#$\[\]\/]/g, '_');
+        }
+
+        function isGoogleSignedIn() {
+            return Boolean(currentFirebaseUser && !currentFirebaseUser.isAnonymous);
+        }
+
+        function getActiveGoogleDisplayName() {
+            if (!isGoogleSignedIn()) return '';
+            const rawDisplay = (currentFirebaseUser.displayName || '').trim();
+            if (rawDisplay) return rawDisplay;
+            if (currentFirebaseUser.email && currentFirebaseUser.email.includes('@')) {
+                return currentFirebaseUser.email.split('@')[0].trim();
+            }
+            return '';
+        }
+
+        function extractAccountIdentity(json, fallbackLabel = '') {
+            const acc = (json && typeof json.account === 'object' && json.account !== null) ? json.account : {};
+            const rawId = acc.playerId || acc.id || acc.userId || acc.uid || fallbackLabel || 'unknown-player';
+            const playerId = String(rawId).trim();
+            const jsonName = String(acc.username || acc.name || acc.displayName || '').trim();
+            const googleName = getActiveGoogleDisplayName();
+            const displayName = googleName || jsonName || playerId;
+            return { playerId, displayName, safeKey: sanitizeFirebaseKey(playerId) };
+        }
+
+        function resolveEntryDisplayName(entry, fallbackName = '') {
+            if (!entry) return fallbackName || 'Unknown Player';
+            // If currently signed in with Google and this log belongs to the signed-in UID, prefer live Google display name
+            if (isGoogleSignedIn() && (entry.ownerUid === currentFirebaseUser.uid || entry.uploadedByUid === currentFirebaseUser.uid)) {
+                const liveGoogleName = getActiveGoogleDisplayName();
+                if (liveGoogleName) return liveGoogleName;
+            }
+            return (
+                entry.googleDisplayName ||
+                entry.playerName ||
+                entry.displayName ||
+                entry.uploadedByName ||
+                entry.playerId ||
+                fallbackName ||
+                'Unknown Player'
+            );
+        }
+
+        function setFirebaseStatusUI(state, detailText = '') {
+            const badge = document.getElementById('firebaseStatusBadge');
+            const dot = document.getElementById('firebaseStatusDot');
+            const text = document.getElementById('firebaseStatusText');
+            if (!badge || !dot || !text) return;
+
+            if (state === 'google') {
+                badge.className = 'inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-indigo-500/40 bg-indigo-500/15 text-indigo-300';
+                dot.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-pulse';
+                text.innerText = detailText || 'Signed in with Google';
+            } else if (state === 'connected') {
+                badge.className = 'inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+                text.innerText = detailText || 'Anonymous Room Mode';
+            } else if (state === 'connecting') {
+                badge.className = 'inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-500/40 bg-amber-500/10 text-amber-300';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+                text.innerText = detailText || 'Connecting...';
+            } else if (state === 'error') {
+                badge.className = 'inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-500/40 bg-rose-500/10 text-rose-300';
+                dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+                text.innerText = detailText || 'Local Mode (Offline)';
+            } else {
+                badge.className = 'inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-slate-700 bg-slate-900 text-slate-400';
+                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+                text.innerText = detailText || 'Offline / Local Mode';
+            }
+        }
+
+        function updateAuthHeaderUI(user) {
+            const googlePill = document.getElementById('googleUserPill');
+            const avatarImg = document.getElementById('googleUserAvatar');
+            const fallbackIcon = document.getElementById('googleUserFallbackIcon');
+            const nameSpan = document.getElementById('googleUserName');
+            const emailSpan = document.getElementById('googleUserEmail');
+            const btnSignIn = document.getElementById('btnGoogleSignIn');
+            const btnSignOut = document.getElementById('btnGoogleSignOut');
+            const uploadBtnLabel = document.getElementById('uploadBtnLabel');
+
+            if (user && !user.isAnonymous) {
+                const dispName = getActiveGoogleDisplayName() || user.email || 'Google User';
+                if (googlePill) {
+                    googlePill.classList.remove('hidden');
+                    googlePill.classList.add('flex');
+                }
+                if (nameSpan) nameSpan.innerText = dispName;
+                if (emailSpan) {
+                    emailSpan.innerText = user.email && user.email !== dispName ? `(${user.email})` : '';
+                }
+                if (user.photoURL && avatarImg) {
+                    avatarImg.src = user.photoURL;
+                    avatarImg.classList.remove('hidden');
+                    if (fallbackIcon) fallbackIcon.classList.add('hidden');
+                } else {
+                    if (avatarImg) avatarImg.classList.add('hidden');
+                    if (fallbackIcon) {
+                        fallbackIcon.innerText = dispName.charAt(0).toUpperCase();
+                        fallbackIcon.classList.remove('hidden');
+                    }
+                }
+                if (btnSignIn) btnSignIn.classList.add('hidden');
+                if (btnSignOut) btnSignOut.classList.remove('hidden');
+                if (uploadBtnLabel) uploadBtnLabel.innerText = 'Upload JSON(s) to Google & Room';
+                setFirebaseStatusUI('google', 'Signed in with Google');
+            } else {
+                if (googlePill) {
+                    googlePill.classList.add('hidden');
+                    googlePill.classList.remove('flex');
+                }
+                if (btnSignIn) btnSignIn.classList.remove('hidden');
+                if (btnSignOut) btnSignOut.classList.add('hidden');
+                if (uploadBtnLabel) uploadBtnLabel.innerText = 'Upload JSON(s) to Room';
+                if (firebaseConnected) {
+                    setFirebaseStatusUI('connected', 'Anonymous Room Mode');
+                }
+            }
+        }
+
+        function showFirebaseToast(msg, isError = false) {
+            const el = document.getElementById('firebaseToastMsg');
+            if (!el) return;
+            el.className = `text-xs font-medium ${isError ? 'text-rose-400' : 'text-emerald-400'}`;
+            el.innerText = msg;
+            setTimeout(() => {
+                if (el.innerText === msg) el.innerText = '';
+            }, 5500);
+        }
+
+        async function initFirebaseSync() {
+            let savedRoom = DEFAULT_ROOM_CODE;
+            try {
+                savedRoom = localStorage.getItem(STORAGE_KEY_FB_ROOM) || DEFAULT_ROOM_CODE;
+            } catch (e) {}
+
+            const roomInput = document.getElementById('firebaseRoomInput');
+            if (roomInput) roomInput.value = savedRoom;
+
+            if (typeof firebase === 'undefined') {
+                setFirebaseStatusUI('error', 'Firebase SDK unavailable');
+                refreshCloudDropdowns();
+                return;
+            }
+
+            try {
+                setFirebaseStatusUI('connecting', 'Connecting to Cloud...');
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(DEFAULT_FIREBASE_CONFIG);
+                }
+                firebaseAuth = firebase.auth();
+                firebaseDb = firebase.database();
+
+                firebaseAuth.onAuthStateChanged(async (user) => {
+                    if (!user) {
+                        try {
+                            await firebaseAuth.signInAnonymously();
+                        } catch (anonErr) {
+                            console.error('Anonymous sign-in failed:', anonErr);
+                            firebaseConnected = false;
+                            setFirebaseStatusUI('error', `Auth Offline (${anonErr.code || 'Check Rules'})`);
+                        }
+                        return;
+                    }
+
+                    currentFirebaseUser = user;
+                    firebaseConnected = true;
+                    updateAuthHeaderUI(user);
+
+                    const currentRoom = roomInput ? roomInput.value.trim() : savedRoom;
+                    subscribeToRoomLogs(currentRoom);
+
+                    if (!user.isAnonymous) {
+                        try {
+                            await firebaseDb.ref(`users/${user.uid}/profile`).update({
+                                displayName: user.displayName || '',
+                                email: user.email || '',
+                                photoURL: user.photoURL || '',
+                                lastSeenAt: new Date().toISOString()
+                            });
+                        } catch (profErr) {
+                            console.warn('Profile metadata update skipped:', profErr);
+                        }
+                        subscribeToGoogleUserLogs(user.uid);
+                        syncSelectedSlotsFromCloud();
+                    } else {
+                        if (activeGoogleUserLogsRef) {
+                            activeGoogleUserLogsRef.off();
+                            activeGoogleUserLogsRef = null;
+                        }
+                        googleUserLogsById = {};
+                        updateCloudCountBadge();
+                        refreshCloudDropdowns();
+                    }
+                });
+            } catch (err) {
+                console.error('Firebase initialization error:', err);
+                firebaseConnected = false;
+                setFirebaseStatusUI('error', `Init Error: ${err.code || 'Local Mode'}`);
+                refreshCloudDropdowns();
+            }
+        }
+
+        async function signInWithGoogleAccount() {
+            if (!firebaseAuth) {
+                showFirebaseToast('Firebase Auth is not initialized yet.', true);
+                return;
+            }
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                const result = await firebaseAuth.signInWithPopup(provider);
+                const user = result.user;
+                const dispName = getActiveGoogleDisplayName() || user.displayName || user.email;
+                showFirebaseToast(`Signed in as ${dispName}. Uploads will now display "${dispName}" across all statistics!`);
+            } catch (err) {
+                console.error('Google Sign-In error:', err);
+                if (err.code === 'auth/popup-closed-by-user') return;
+                if (err.code === 'auth/unauthorized-domain') {
+                    showFirebaseToast('Add this domain to Firebase Console > Authentication > Settings > Authorized Domains.', true);
+                } else if (err.code === 'auth/operation-not-allowed') {
+                    showFirebaseToast('Enable Google Sign-In provider in Firebase Console > Authentication.', true);
+                } else {
+                    showFirebaseToast(`Google Sign-In failed: ${err.message}`, true);
+                }
+            }
+        }
+
+        async function signOutToAnonymousRoom() {
+            if (!firebaseAuth) return;
+            try {
+                if (activeGoogleUserLogsRef) {
+                    activeGoogleUserLogsRef.off();
+                    activeGoogleUserLogsRef = null;
+                }
+                googleUserLogsById = {};
+                await firebaseAuth.signOut();
+                showFirebaseToast('Signed out of Google. Switched back to Anonymous Room mode.');
+            } catch (err) {
+                console.error('Sign-out error:', err);
+                showFirebaseToast(`Sign out failed: ${err.message}`, true);
+            }
+        }
+
+        function subscribeToGoogleUserLogs(uid) {
+            if (!firebaseDb || !uid) return;
+            if (activeGoogleUserLogsRef) {
+                activeGoogleUserLogsRef.off();
+            }
+            activeGoogleUserLogsRef = firebaseDb.ref(`users/${uid}/logs`);
+            activeGoogleUserLogsRef.on('value', (snapshot) => {
+                googleUserLogsById = snapshot.val() || {};
+                updateCloudCountBadge();
+                refreshCloudDropdowns();
+                syncSelectedSlotsFromCloud();
+            }, (err) => {
+                console.error('Google user logs listener error:', err);
+            });
+        }
+
+        function subscribeToRoomLogs(roomCode) {
+            if (!firebaseDb || !firebaseConnected) return;
+            const cleanRoom = sanitizeFirebaseKey(roomCode || DEFAULT_ROOM_CODE);
+            try {
+                localStorage.setItem(STORAGE_KEY_FB_ROOM, cleanRoom);
+            } catch (e) {}
+
+            if (activeRoomRef) {
+                activeRoomRef.off();
+            }
+
+            activeRoomRef = firebaseDb.ref(`rooms/${cleanRoom}/players`);
+            activeRoomRef.on('value', (snapshot) => {
+                roomLogsById = snapshot.val() || {};
+                updateCloudCountBadge();
+                refreshCloudDropdowns();
+                syncSelectedSlotsFromCloud();
+            }, (err) => {
+                console.error('Realtime DB listener error:', err);
+                setFirebaseStatusUI('error', `Read Denied (${err.code || 'Rules'})`);
+            });
+        }
+
+        function updateCloudCountBadge() {
+            const countBadge = document.getElementById('cloudLogCountBadge');
+            if (!countBadge) return;
+            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+            const roomCount = Object.keys(roomLogsById).length;
+            const googleCount = Object.keys(googleUserLogsById).length;
+            if (isGoogleSignedIn()) {
+                countBadge.innerText = `${googleCount} in Google Account • ${roomCount} in "${cleanRoom}"`;
+            } else {
+                countBadge.innerText = `${roomCount} player log${roomCount === 1 ? '' : 's'} in "${cleanRoom}"`;
+            }
+        }
+
+        function resolveCloudEntryByCompositeKey(compositeKey) {
+            if (!compositeKey || compositeKey === '__LOCAL_SAMPLE__') return null;
+            if (compositeKey.startsWith('google:')) {
+                const k = compositeKey.slice('google:'.length);
+                return googleUserLogsById[k] || null;
+            }
+            if (compositeKey.startsWith('room:')) {
+                const k = compositeKey.slice('room:'.length);
+                return roomLogsById[k] || null;
+            }
+            return roomLogsById[compositeKey] || googleUserLogsById[compositeKey] || null;
+        }
+
+        function syncSelectedSlotsFromCloud() {
+            let anySlotUpdated = false;
+            slotSelectedCloudIds.forEach((selectedCompositeKey, slotIdx) => {
+                if (!selectedCompositeKey || selectedCompositeKey === '__LOCAL_SAMPLE__') return;
+                const entry = resolveCloudEntryByCompositeKey(selectedCompositeKey);
+                if (entry && entry.rawData) {
+                    const labelName = resolveEntryDisplayName(entry, entry.playerId);
+                    const badgePrefix = entry.authType === 'google' ? '✓ Google' : 'Room';
+                    applyJsonToSlot(slotIdx, entry.rawData, labelName, `${badgePrefix}: ${entry.playerId}`, selectedCompositeKey, false);
+                    anySlotUpdated = true;
+                }
+            });
+            if (anySlotUpdated) {
+                renderDashboard();
+            }
+        }
+
+        async function uploadJsonToCloudDatabase(json, fallbackLabel = '') {
+            const { playerId, displayName, safeKey } = extractAccountIdentity(json, fallbackLabel);
+            const googleLinked = isGoogleSignedIn();
+            const googleDisplayName = googleLinked ? (getActiveGoogleDisplayName() || playerId) : null;
+            const resolvedPlayerName = googleLinked ? googleDisplayName : displayName;
+
+            if (!firebaseConnected || !firebaseDb || !currentFirebaseUser) {
+                showFirebaseToast('Cloud database offline — loaded locally only.', true);
+                return { uploaded: false, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: null };
+            }
+
+            const roomCode = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+
+            const payload = {
+                playerId,
+                playerName: resolvedPlayerName,
+                displayName: resolvedPlayerName,
+                googleDisplayName: googleLinked ? googleDisplayName : null,
+                ownerUid: currentFirebaseUser.uid,
+                ownerEmail: googleLinked ? (currentFirebaseUser.email || '') : null,
+                uploadedAt: new Date().toISOString(),
+                expeditionCount: Array.isArray(json.expeditions) ? json.expeditions.length : 0,
+                authType: googleLinked ? 'google' : 'anonymous',
+                uploadedByUid: currentFirebaseUser.uid,
+                uploadedByName: googleLinked ? googleDisplayName : null,
+                uploadedByEmail: googleLinked ? (currentFirebaseUser.email || '') : null,
+                rawData: json
+            };
+
+            try {
+                if (googleLinked) {
+                    // 1. Save strictly under the user's Google UID
+                    await firebaseDb.ref(`users/${currentFirebaseUser.uid}/logs/${safeKey}`).set(payload);
+                    // 2. Also publish a verified Google-tagged copy into the active room so friends can compare
+                    await firebaseDb.ref(`rooms/${roomCode}/players/${safeKey}`).set(payload);
+                    showFirebaseToast(`Saved "${resolvedPlayerName}" (${playerId}) to your Google Account & room "${roomCode}".`);
+                    return { uploaded: true, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: `google:${safeKey}` };
+                } else {
+                    // Anonymous room upload
+                    await firebaseDb.ref(`rooms/${roomCode}/players/${safeKey}`).set(payload);
+                    showFirebaseToast(`Synced "${resolvedPlayerName}" to anonymous room "${roomCode}" (${payload.expeditionCount} days).`);
+                    return { uploaded: true, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: `room:${safeKey}` };
+                }
+            } catch (err) {
+                console.error('Cloud upload failed:', err);
+                showFirebaseToast(`Cloud upload failed: ${err.message}`, true);
+                return { uploaded: false, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: null };
+            }
+        }
+
+        function refreshCloudDropdowns() {
+            const googleEntries = Object.entries(googleUserLogsById).map(([safeKey, item]) => ({
+                compositeKey: `google:${safeKey}`,
+                safeKey,
+                playerId: item.playerId || safeKey,
+                displayName: resolveEntryDisplayName(item, item.playerId || safeKey),
+                expeditionCount: item.expeditionCount ?? (item.rawData?.expeditions?.length || 0),
+                uploadedAt: item.uploadedAt || '',
+                authType: 'google'
+            })).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+            const roomEntries = Object.entries(roomLogsById).map(([safeKey, item]) => ({
+                compositeKey: `room:${safeKey}`,
+                safeKey,
+                playerId: item.playerId || safeKey,
+                displayName: resolveEntryDisplayName(item, item.playerId || safeKey),
+                expeditionCount: item.expeditionCount ?? (item.rawData?.expeditions?.length || 0),
+                uploadedAt: item.uploadedAt || '',
+                authType: item.authType || 'anonymous',
+                uploadedByName: item.googleDisplayName || item.uploadedByName || item.googleName || ''
+            })).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+
+            for (let i = 0; i < 4; i++) {
+                const select = document.getElementById(`cloudSelect${i + 1}`);
+                if (!select) continue;
+                const currentVal = slotSelectedCloudIds[i] || '';
+                select.innerHTML = '';
+
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = (googleEntries.length > 0 || roomEntries.length > 0)
+                    ? 'Select player log...'
+                    : 'Select player log (Local Sample)...';
+                select.appendChild(defaultOpt);
+
+                // Group 1: Signed-in Google Account Logs
+                if (googleEntries.length > 0) {
+                    const gGroup = document.createElement('optgroup');
+                    gGroup.label = 'My Google Account Logs';
+                    googleEntries.forEach(entry => {
+                        const dateTag = entry.uploadedAt ? ` • ${entry.uploadedAt.slice(0, 10)}` : '';
+                        const idTag = entry.displayName && entry.displayName !== entry.playerId ? ` (${entry.playerId})` : '';
+                        const opt = document.createElement('option');
+                        opt.value = entry.compositeKey;
+                        opt.textContent = `✓ ${entry.displayName}${idTag} [${entry.expeditionCount}d${dateTag}]`;
+                        if (entry.compositeKey === currentVal) opt.selected = true;
+                        gGroup.appendChild(opt);
+                    });
+                    select.appendChild(gGroup);
+                }
+
+                // Group 2: Active Room Logs (both Google-verified and Anonymous)
+                if (roomEntries.length > 0) {
+                    const rGroup = document.createElement('optgroup');
+                    rGroup.label = `Room: ${cleanRoom}`;
+                    roomEntries.forEach(entry => {
+                        const dateTag = entry.uploadedAt ? ` • ${entry.uploadedAt.slice(0, 10)}` : '';
+                        const idTag = entry.displayName && entry.displayName !== entry.playerId ? ` (${entry.playerId})` : '';
+                        const authBadge = entry.authType === 'google' ? '✓ Google: ' : 'Anon: ';
+                        const opt = document.createElement('option');
+                        opt.value = entry.compositeKey;
+                        opt.textContent = `${authBadge}${entry.displayName}${idTag} [${entry.expeditionCount}d${dateTag}]`;
+                        if (entry.compositeKey === currentVal) opt.selected = true;
+                        rGroup.appendChild(opt);
+                    });
+                    select.appendChild(rGroup);
+                }
+
+                // Built-in fallback sample option
+                const fallbackGroup = document.createElement('optgroup');
+                fallbackGroup.label = 'Built-in Sample';
+                const sampleOpt = document.createElement('option');
+                sampleOpt.value = '__LOCAL_SAMPLE__';
+                sampleOpt.textContent = 'local-sample (Adam Demo) [22d]';
+                if (currentVal === '__LOCAL_SAMPLE__') sampleOpt.selected = true;
+                fallbackGroup.appendChild(sampleOpt);
+                select.appendChild(fallbackGroup);
+            }
+        }
+
+        function applyJsonToSlot(slotIdx, json, playerName, sourceLabel, compositeKey = null, shouldRender = true) {
+            const { playerId } = extractAccountIdentity(json, playerName);
+            loadedPlayers[slotIdx] = parsePlayerData(json, playerName, PLAYER_PALETTE[slotIdx], playerId);
+            slotSelectedCloudIds[slotIdx] = compositeKey;
+
+            document.getElementById(`labelPlayer${slotIdx + 1}`).innerText = `${playerName} (P${slotIdx + 1})`;
+            document.getElementById(`fileName${slotIdx + 1}`).innerText = sourceLabel;
+
+            const badge = document.getElementById(`playerIdBadge${slotIdx + 1}`);
+            if (badge) {
+                badge.innerText = `ID: ${playerId}`;
+                badge.classList.remove('hidden');
+            }
+
+            if (slotIdx > 0) {
+                document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.remove('hidden');
+                document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-user-check text-lg text-slate-300';
+            }
+
+            const select = document.getElementById(`cloudSelect${slotIdx + 1}`);
+            if (select) select.value = compositeKey || '';
+
+            if (shouldRender) renderDashboard();
+        }
+
+        function selectDatabasePlayerForSlot(slotIdx, compositeKey) {
+            if (!compositeKey) {
+                slotSelectedCloudIds[slotIdx] = null;
+                return;
+            }
+            if (compositeKey === '__LOCAL_SAMPLE__') {
+                applyJsonToSlot(slotIdx, sampleFarflungData, 'Adam', 'Adam_data.json', '__LOCAL_SAMPLE__', true);
+                return;
+            }
+            const entry = resolveCloudEntryByCompositeKey(compositeKey);
+            if (!entry || !entry.rawData) return;
+
+            const labelName = resolveEntryDisplayName(entry, entry.playerId);
+            const prefix = entry.authType === 'google' ? '✓ Google' : 'Room';
+            applyJsonToSlot(slotIdx, entry.rawData, labelName, `${prefix}: ${entry.playerId}`, compositeKey, true);
+        }
+
+        function readFileAsTextAsync(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        async function handleDirectCloudUpload(event) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+
+            try {
+                for (const file of files) {
+                    try {
+                        const rawText = await readFileAsTextAsync(file);
+                        const json = JSON.parse(rawText);
+                        const fallbackName = file.name.replace('.json', '').replace('farflung-data-', '');
+                        const res = await uploadJsonToCloudDatabase(json, fallbackName);
+
+                        const matchingSlot = slotSelectedCloudIds.findIndex(k => k && k.endsWith(`:${res.safeKey}`));
+                        const emptySlot = loadedPlayers.findIndex(p => p === null);
+                        const targetSlot = matchingSlot !== -1 ? matchingSlot : emptySlot;
+                        if (targetSlot !== -1) {
+                            const prefix = isGoogleSignedIn() ? '✓ Google' : 'Room';
+                            applyJsonToSlot(
+                                targetSlot,
+                                json,
+                                res.displayName,
+                                res.uploaded ? `${prefix}: ${res.playerId}` : file.name,
+                                res.uploaded ? res.compositeKey : null,
+                                false
+                            );
+                        }
+                    } catch (fileErr) {
+                        console.error(`Error parsing JSON file "${file.name}":`, fileErr);
+                        showFirebaseToast(`Invalid JSON in "${file.name}".`, true);
+                    }
+                }
+                renderDashboard();
+            } finally {
+                event.target.value = '';
+            }
+        }
 
         // Zero-Maintenance Weighted Stem & Token Trivia Category Classifier
         const TRIVIA_CATEGORIES = [
@@ -1053,6 +1728,7 @@
 
         // Sample Data for Player 1 (Adam) - Full 22-Day Expedition Log
         const sampleFarflungData = {
+            "account": { "playerId": "local-sample", "username": "Adam" },
             "expeditions": [
                 {"day":"2026-10-20","distanceKm":210,"pins":[
                     {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pin a country with a Z in its name","answer":"ZMB","countedAs":"ZMB","lon":25.04,"lat":-14.51,"zoom":2.2},
@@ -1325,11 +2001,29 @@
             initLeafletMap();
             setupEventListeners();
             resetToSinglePlayer();
+            initFirebaseSync();
         });
 
         function setupEventListeners() {
             document.getElementById('btnLoadSingleSample').addEventListener('click', resetToSinglePlayer);
             document.getElementById('btnLoad4Sample').addEventListener('click', load4PlayerSampleData);
+
+            // Google Sign-In, Sign-Out & Anonymous Room Controls
+            document.getElementById('btnGoogleSignIn').addEventListener('click', signInWithGoogleAccount);
+            document.getElementById('btnGoogleSignOut').addEventListener('click', signOutToAnonymousRoom);
+
+            document.getElementById('btnConnectRoom').addEventListener('click', () => {
+                const roomVal = document.getElementById('firebaseRoomInput').value.trim() || DEFAULT_ROOM_CODE;
+                if (firebaseConnected) {
+                    subscribeToRoomLogs(roomVal);
+                    showFirebaseToast(`Joined room "${sanitizeFirebaseKey(roomVal)}".`);
+                } else {
+                    try {
+                        localStorage.setItem(STORAGE_KEY_FB_ROOM, roomVal);
+                    } catch (e) {}
+                    initFirebaseSync();
+                }
+            });
 
             document.getElementById('btnResetDateRange').addEventListener('click', () => {
                 document.getElementById('startDateFilter').value = '';
@@ -1368,9 +2062,8 @@
                 const backdrop = document.getElementById('modalBackdrop');
                 backdrop.classList.remove('hidden');
 
-                // Force Card into centered modal layout (80vw width, 75vh height)
                 card.classList.add('fixed', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-[80vw]', 'max-w-5xl', 'h-[75vh]', 'max-h-[75vh]', 'z-50', 'shadow-2xl', 'flex', 'flex-col', 'overflow-hidden', 'ring-1', 'ring-slate-700');
-                
+
                 const container = card.querySelector('.chart-container');
                 if (container) {
                     container.classList.remove('h-64', 'h-72', 'sm:h-80', 'h-80', 'h-96', 'h-44');
@@ -1425,7 +2118,7 @@
                 } else if (chartId === 'chartVariance') {
                     container.classList.add('h-44');
                 } else if (chartId === 'cardCountryDiversity' || chartId === 'cardH2HMatrix' || chartId === 'cardTopicHighlights') {
-                    // Restore natural flow layout
+                    // Natural flow layout
                 } else {
                     container.classList.add('h-64');
                 }
@@ -1446,7 +2139,8 @@
 
         function resetToSinglePlayer() {
             loadedPlayers = [null, null, null, null];
-            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0]);
+            slotSelectedCloudIds = ['__LOCAL_SAMPLE__', null, null, null];
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0], 'local-sample');
             selectedRarityPlayerIndex = 0;
             selectedRollingRarityPlayerIndex = 0;
             selectedDiversityPlayerIndex = 0;
@@ -1455,18 +2149,28 @@
             document.getElementById('startDateFilter').value = '';
             document.getElementById('endDateFilter').value = '';
 
-            // Update UI Card Slots
             document.getElementById('labelPlayer1').innerText = 'Adam (Player 1)';
             document.getElementById('fileName1').innerText = 'Adam_data.json';
+            const badge1 = document.getElementById('playerIdBadge1');
+            if (badge1) {
+                badge1.innerText = 'ID: local-sample';
+                badge1.classList.remove('hidden');
+            }
 
             for (let i = 1; i < 4; i++) {
                 document.getElementById(`labelPlayer${i + 1}`).innerText = `Player ${i + 1}`;
                 document.getElementById(`fileName${i + 1}`).innerText = 'No Data Loaded';
+                const badge = document.getElementById(`playerIdBadge${i + 1}`);
+                if (badge) {
+                    badge.innerText = '';
+                    badge.classList.add('hidden');
+                }
                 document.getElementById(`btnClearSlot${i + 1}`).classList.add('hidden');
                 document.getElementById(`iconSlot${i + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
-                document.getElementById(`slotCard${i + 1}`).className = 'border border-dashed border-slate-700 bg-slate-900/50 hover:border-slate-500 rounded-xl p-3.5 text-center transition cursor-pointer flex flex-col justify-between relative';
+                document.getElementById(`slotCard${i + 1}`).className = 'border border-dashed border-slate-700 bg-slate-900/50 hover:border-slate-500 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative space-y-2.5';
             }
 
+            refreshCloudDropdowns();
             renderDashboard();
         }
 
@@ -1475,20 +2179,26 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const json = JSON.parse(e.target.result);
-                    const playerName = file.name.replace('.json', '').replace('farflung-data-', '') || `Player ${slotIdx + 1}`;
-                    loadedPlayers[slotIdx] = parsePlayerData(json, playerName, PLAYER_PALETTE[slotIdx]);
-
-                    document.getElementById(`labelPlayer${slotIdx + 1}`).innerText = `${playerName} (P${slotIdx + 1})`;
-                    document.getElementById(`fileName${slotIdx + 1}`).innerText = file.name;
-                    document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.remove('hidden');
-                    document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-user-check text-lg text-slate-300';
-
-                    renderDashboard();
+                    const fallbackName = file.name.replace('.json', '').replace('farflung-data-', '') || `Player ${slotIdx + 1}`;
+                    const res = await uploadJsonToCloudDatabase(json, fallbackName);
+                    const labelName = res.displayName || fallbackName;
+                    const prefix = isGoogleSignedIn() ? '✓ Google' : 'Room';
+                    applyJsonToSlot(
+                        slotIdx,
+                        json,
+                        labelName,
+                        res.uploaded ? `${prefix}: ${res.playerId}` : file.name,
+                        res.uploaded ? res.compositeKey : null,
+                        true
+                    );
                 } catch (err) {
                     console.error('Error parsing JSON file:', err);
+                    showFirebaseToast('Invalid JSON file selected.', true);
+                } finally {
+                    event.target.value = '';
                 }
             };
             reader.readAsText(file);
@@ -1497,8 +2207,16 @@
         function clearSlot(event, slotIdx) {
             event.stopPropagation();
             loadedPlayers[slotIdx] = null;
+            slotSelectedCloudIds[slotIdx] = null;
             document.getElementById(`labelPlayer${slotIdx + 1}`).innerText = `Player ${slotIdx + 1}`;
             document.getElementById(`fileName${slotIdx + 1}`).innerText = 'No Data Loaded';
+            const badge = document.getElementById(`playerIdBadge${slotIdx + 1}`);
+            if (badge) {
+                badge.innerText = '';
+                badge.classList.add('hidden');
+            }
+            const sel = document.getElementById(`cloudSelect${slotIdx + 1}`);
+            if (sel) sel.value = '';
             document.getElementById(`btnClearSlot${slotIdx + 1}`).classList.add('hidden');
             document.getElementById(`iconSlot${slotIdx + 1}`).className = 'fa-solid fa-plus text-lg text-slate-500';
             document.getElementById(`fileInput${slotIdx + 1}`).value = '';
@@ -1558,8 +2276,9 @@
             return { isSharedOnly, filterDates };
         }
 
-        function parsePlayerData(rawData, name, palette) {
+        function parsePlayerData(rawData, name, palette, playerId = '') {
             const rawExps = rawData.expeditions || [];
+            const resolvedPlayerId = playerId || extractAccountIdentity(rawData, name).playerId;
             let totalKmSum = 0;
             let totalPinsCount = 0;
             let successfulPinsCount = 0;
@@ -1633,6 +2352,7 @@
 
             return {
                 name,
+                playerId: resolvedPlayerId,
                 palette,
                 expeditions: expeditionsParsed,
                 allPins,
@@ -1659,8 +2379,9 @@
             const p3Dist = [140, 170, 190, 150, 220, 180, 210, 160, 190, 130, 240, 170, 190, 200, 160, 180, 210, 150, 170, 190, 220, 180];
             const p4Dist = [240, 260, 210, 190, 280, 310, 270, 230, 250, 290, 320, 210, 280, 300, 240, 260, 270, 230, 290, 250, 310, 290];
 
-            function createMockJSON(distList, playerVariant) {
+            function createMockJSON(distList, playerVariant, pId, pName) {
                 return {
+                    account: { playerId: pId, username: pName },
                     expeditions: dates.map((d, i) => {
                         const baseExp = sampleFarflungData.expeditions[i];
                         const totalDist = distList[i];
@@ -1691,15 +2412,23 @@
                 };
             }
 
-            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0]);
-            loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist, 1), 'Dan', PLAYER_PALETTE[1]);
-            loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist, 2), 'Jakob', PLAYER_PALETTE[2]);
-            loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist, 3), 'Nathan', PLAYER_PALETTE[3]);
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0], 'demo-adam');
+            loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist, 1, 'demo-dan', 'Dan'), 'Dan', PLAYER_PALETTE[1], 'demo-dan');
+            loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist, 2, 'demo-jakob', 'Jakob'), 'Jakob', PLAYER_PALETTE[2], 'demo-jakob');
+            loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist, 3, 'demo-nathan', 'Nathan'), 'Nathan', PLAYER_PALETTE[3], 'demo-nathan');
+            slotSelectedCloudIds = [null, null, null, null];
 
             for (let i = 0; i < 4; i++) {
                 document.getElementById(`labelPlayer${i + 1}`).innerText = `${loadedPlayers[i].name} (P${i + 1})`;
                 document.getElementById(`fileName${i + 1}`).innerText = `${loadedPlayers[i].name}_data.json`;
-                document.getElementById(`btnClearSlot${i + 1}`).classList.remove('hidden');
+                const badge = document.getElementById(`playerIdBadge${i + 1}`);
+                if (badge) {
+                    badge.innerText = `ID: ${loadedPlayers[i].playerId}`;
+                    badge.classList.remove('hidden');
+                }
+                const sel = document.getElementById(`cloudSelect${i + 1}`);
+                if (sel) sel.value = '';
+                if (i > 0) document.getElementById(`btnClearSlot${i + 1}`).classList.remove('hidden');
                 document.getElementById(`iconSlot${i + 1}`).className = 'fa-solid fa-user-check text-lg text-slate-300';
             }
 
@@ -2392,7 +3121,7 @@
                     <div class="p-8 text-center space-y-2 bg-slate-950/50">
                         <i class="fa-solid fa-users-between-lines text-2xl text-slate-600"></i>
                         <p class="text-xs font-medium text-slate-300">Load 2 or more players to unlock the Head-to-Head W-T-L Matrix.</p>
-                        <p class="text-[11px] text-slate-500">Click "Load Demo 4-Player Stats" in the top bar or upload another player's JSON file.</p>
+                        <p class="text-[11px] text-slate-500">Click "Load Demo 4-Player Stats" in the top bar or select another player log from the dropdown.</p>
                     </div>
                 `;
                 return;
@@ -2586,7 +3315,7 @@
                 });
             }
 
-            // 2. Standalone Card 2: Card Topic & Trivia Category Accuracy (Multi-Player Grouped Horizontal Bar Chart)
+            // 2. Standalone Card 2: Card Topic & Trivia Category Accuracy
             const accCanvas = document.getElementById('chartPlotTopicAccuracy');
             if (accCanvas) {
                 const ctxAcc = accCanvas.getContext('2d');
@@ -2636,7 +3365,7 @@
                 });
             }
 
-            // 3. Standalone Card 3: Single-Player Rarity Mix by Category (Stacked Horizontal Bar Chart)
+            // 3. Standalone Card 3: Single-Player Rarity Mix by Category
             const rarityCanvas = document.getElementById('chartPlotTopicRarityMix');
             const focusPlayer = loadedPlayers[selectedTopicRarityPlayerIndex] || activePlayers[0];
 
@@ -2700,7 +3429,7 @@
             }
         }
 
-        // Plot 1: Daily Score Line Chart (Straight Segments, Starts at Y=0)
+        // Plot 1: Daily Score Line Chart
         function renderPlot1(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot1').getContext('2d');
             if (chartInstances['chart1']) chartInstances['chart1'].destroy();
@@ -2726,7 +3455,7 @@
             });
         }
 
-        // Plot 2: Cumulative Average (Straight Segments, Starts at Y=0)
+        // Plot 2: Cumulative Average
         function renderPlot2(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot2').getContext('2d');
             if (chartInstances['chart2']) chartInstances['chart2'].destroy();
@@ -2758,7 +3487,7 @@
             });
         }
 
-        // Cumulative Target & Pace Projection Line Chart (Straight Segments, Starts at Y=0)
+        // Cumulative Target & Pace Projection Line Chart
         function renderPlotTargetPace(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotTargetPace').getContext('2d');
             if (chartInstances['chartTargetPace']) chartInstances['chartTargetPace'].destroy();
@@ -2802,7 +3531,7 @@
             });
         }
 
-        // Round-by-Round Success Rate (Starts at Y=0)
+        // Round-by-Round Success Rate
         function renderPlotRounds(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotRounds').getContext('2d');
             if (chartInstances['chartRounds']) chartInstances['chartRounds'].destroy();
@@ -2843,7 +3572,7 @@
             });
         }
 
-        // Plot 5: Multi-Player Gaussian Score Bin Probability Curves (Straight Segments, Starts at Y=0)
+        // Plot 5: Multi-Player Gaussian Score Bin Probability Curves
         function renderPlot5(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot5').getContext('2d');
             if (chartInstances['chart5']) chartInstances['chart5'].destroy();
@@ -2889,7 +3618,7 @@
             });
         }
 
-        // Daily Win Leaderboard (Head-to-Head 1st Places)
+        // Daily Win Leaderboard
         function renderPlotWins(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlotWins').getContext('2d');
             if (chartInstances['chartWins']) chartInstances['chartWins'].destroy();
@@ -2933,7 +3662,7 @@
             });
         }
 
-        // Plot 4: Grouped Bar Chart of Selections by Rarity (Starts at Y=0)
+        // Plot 4: Grouped Bar Chart of Selections by Rarity
         function renderPlot4(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot4').getContext('2d');
             if (chartInstances['chart4']) chartInstances['chart4'].destroy();
@@ -2970,7 +3699,7 @@
             });
         }
 
-        // Plot 6: Overlaid Radar Chart (Straight Lines, Starts at 0)
+        // Plot 6: Overlaid Radar Chart
         function renderPlot6(activePlayers, filterDates) {
             const ctx = document.getElementById('chartPlot6').getContext('2d');
             if (chartInstances['chart6']) chartInstances['chart6'].destroy();
@@ -3047,6 +3776,7 @@
 
         // Leaflet Map Setup with Toggles
         function initLeafletMap() {
+            if (typeof L === 'undefined') return;
             leafletMap = L.map('map', {
                 center: [20, 0],
                 zoom: 2,
@@ -3061,6 +3791,7 @@
         }
 
         function renderMapPins(activePlayers, filterDates) {
+            if (!leafletMap) return;
             mapMarkers.forEach(m => leafletMap.removeLayer(m));
             mapMarkers = [];
 
@@ -3117,6 +3848,7 @@
         }
 
         function updateMapLayers() {
+            if (!leafletMap) return;
             const showPins = document.getElementById('togglePinMarkers').checked;
             const showHeat = document.getElementById('toggleHeatmap').checked;
             const rFilter = document.querySelector('.map-filter-btn.active')?.getAttribute('data-rarity') || null;
@@ -3129,11 +3861,11 @@
                 const matchR = (rFilter === null || m.rarityCategory === rFilter);
                 const matchP = (pFilter === 'ALL' || m.playerName === pFilter);
                 const matchC = (cFilter === 'ALL' || m.categoryId === cFilter);
-                
+
                 if (matchR && matchP && matchC) {
                     if (showPins) m.addTo(leafletMap);
                     else leafletMap.removeLayer(m);
-                    
+
                     if (m.rarityCategory !== 'Miss') {
                         filteredHeatPoints.push([m.lat, m.lon, 0.8]);
                     }
@@ -3186,7 +3918,6 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-800/40 transition day-row';
 
-                // Determine highest score & daily winners for this date
                 const dayEntries = activePlayers.map(p => ({
                     player: p,
                     exp: p.expeditions.find(e => e.day === d) || null
@@ -3239,7 +3970,6 @@
                     }
                 });
 
-                // Render Daily Leader Cell
                 if (winners.length === 1) {
                     const winP = winners[0].player;
                     rowHTML += `
@@ -3279,6 +4009,16 @@
                 row.style.display = text.includes(q) ? '' : 'none';
             });
         }
+
+        // Explicitly bind inline event handlers to window
+        window.toggleCardHelp = toggleCardHelp;
+        window.toggleExpandCard = toggleExpandCard;
+        window.closeExpandedModal = closeExpandedModal;
+        window.renderDashboard = renderDashboard;
+        window.handlePlayerUpload = handlePlayerUpload;
+        window.clearSlot = clearSlot;
+        window.selectDatabasePlayerForSlot = selectDatabasePlayerForSlot;
+        window.handleDirectCloudUpload = handleDirectCloudUpload;
     </script>
 </body>
 </html>
