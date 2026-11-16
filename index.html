@@ -187,6 +187,20 @@
                         <input type="file" id="cloudDirectUploadInput" accept=".json" multiple class="hidden" onchange="handleDirectCloudUpload(event)">
                     </div>
                 </div>
+
+                <!-- Joined Rooms Bar: Persistent History & Quick Switch/Read -->
+                <div class="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-slate-400 font-medium flex items-center space-x-1.5 shrink-0">
+                            <i class="fa-solid fa-bookmark text-indigo-400"></i>
+                            <span>Joined Rooms:</span>
+                        </span>
+                        <div id="joinedRoomsList" class="flex flex-wrap items-center gap-1.5"></div>
+                    </div>
+                    <div class="text-[11px] text-slate-500 shrink-0">
+                        Click any room to switch &amp; read player logs
+                    </div>
+                </div>
             </div>
 
             <!-- Player Slots Grid (Max 4 Players) -->
@@ -996,6 +1010,7 @@
         };
         const DEFAULT_ROOM_CODE = "farflung-friends";
         const STORAGE_KEY_FB_ROOM = "farflung_firebase_room_v1";
+        const STORAGE_KEY_JOINED_ROOMS = "farflung_joined_rooms_v1";
 
         let firebaseDb = null;
         let firebaseAuth = null;
@@ -1003,13 +1018,192 @@
         let currentFirebaseUser = null;
         let activeRoomRef = null;
         let activeGoogleUserLogsRef = null;
+        let activeJoinedRoomsRef = null;
+        let currentRoomCode = DEFAULT_ROOM_CODE;
 
+        let joinedRoomsMap = {};     // { [roomCode]: { roomCode, joinedAt, lastVisitedAt } }
         let roomLogsById = {};       // { [safePlayerId]: logEntry } from rooms/<roomCode>/players
         let googleUserLogsById = {}; // { [safePlayerId]: logEntry } from users/<uid>/logs
         let slotSelectedCloudIds = [null, null, null, null]; // Stores composite keys: "room:<key>", "google:<key>", or "__LOCAL_SAMPLE__"
 
         function sanitizeFirebaseKey(rawKey) {
             return String(rawKey || 'unknown-player').trim().replace(/[.#$\[\]\/]/g, '_');
+        }
+
+        // =========================================================================
+        // JOINED ROOMS HISTORY & ONE-CLICK SWITCH / READ
+        // =========================================================================
+        function loadLocalJoinedRooms() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_JOINED_ROOMS);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        joinedRoomsMap = { ...parsed };
+                    }
+                }
+            } catch (e) {}
+            if (!joinedRoomsMap[DEFAULT_ROOM_CODE]) {
+                joinedRoomsMap[DEFAULT_ROOM_CODE] = {
+                    roomCode: DEFAULT_ROOM_CODE,
+                    joinedAt: new Date().toISOString(),
+                    lastVisitedAt: new Date().toISOString()
+                };
+            }
+        }
+
+        function persistLocalJoinedRooms() {
+            try {
+                localStorage.setItem(STORAGE_KEY_JOINED_ROOMS, JSON.stringify(joinedRoomsMap));
+            } catch (e) {}
+        }
+
+        async function recordJoinedRoom(roomCode) {
+            const cleanRoom = sanitizeFirebaseKey(roomCode || DEFAULT_ROOM_CODE);
+            if (!cleanRoom) return;
+
+            const now = new Date().toISOString();
+            const existing = joinedRoomsMap[cleanRoom] || {};
+            const entry = {
+                roomCode: cleanRoom,
+                joinedAt: existing.joinedAt || now,
+                lastVisitedAt: now
+            };
+
+            joinedRoomsMap[cleanRoom] = entry;
+            persistLocalJoinedRooms();
+            renderJoinedRoomsBar();
+
+            if (firebaseConnected && firebaseDb && isGoogleSignedIn()) {
+                try {
+                    await firebaseDb.ref(`users/${currentFirebaseUser.uid}/joinedRooms/${cleanRoom}`).set(entry);
+                } catch (err) {
+                    console.warn('Could not sync joined room to Google profile:', err);
+                }
+            }
+        }
+
+        function subscribeToJoinedRooms(uid) {
+            if (!firebaseDb || !uid) return;
+            if (activeJoinedRoomsRef) {
+                activeJoinedRoomsRef.off();
+            }
+            activeJoinedRoomsRef = firebaseDb.ref(`users/${uid}/joinedRooms`);
+            activeJoinedRoomsRef.on('value', (snapshot) => {
+                const cloudRooms = snapshot.val() || {};
+                let mergedChanged = false;
+                Object.entries(cloudRooms).forEach(([code, data]) => {
+                    if (!joinedRoomsMap[code]) {
+                        joinedRoomsMap[code] = {
+                            roomCode: code,
+                            joinedAt: data.joinedAt || new Date().toISOString(),
+                            lastVisitedAt: data.lastVisitedAt || new Date().toISOString()
+                        };
+                        mergedChanged = true;
+                    }
+                });
+                if (mergedChanged) persistLocalJoinedRooms();
+                renderJoinedRoomsBar();
+            }, (err) => {
+                console.warn('Joined rooms listener warning:', err);
+            });
+        }
+
+        function switchToJoinedRoom(roomCode) {
+            const cleanRoom = sanitizeFirebaseKey(roomCode || DEFAULT_ROOM_CODE);
+            const roomInput = document.getElementById('firebaseRoomInput');
+            if (roomInput) roomInput.value = cleanRoom;
+
+            currentRoomCode = cleanRoom;
+            try {
+                localStorage.setItem(STORAGE_KEY_FB_ROOM, cleanRoom);
+            } catch (e) {}
+
+            recordJoinedRoom(cleanRoom);
+
+            if (firebaseConnected) {
+                subscribeToRoomLogs(cleanRoom);
+                showFirebaseToast(`Reading room "${cleanRoom}"...`);
+            } else {
+                initFirebaseSync();
+            }
+        }
+
+        async function removeJoinedRoom(event, roomCode) {
+            if (event) event.stopPropagation();
+            const cleanRoom = sanitizeFirebaseKey(roomCode);
+            delete joinedRoomsMap[cleanRoom];
+            persistLocalJoinedRooms();
+            renderJoinedRoomsBar();
+
+            if (firebaseConnected && firebaseDb && isGoogleSignedIn()) {
+                try {
+                    await firebaseDb.ref(`users/${currentFirebaseUser.uid}/joinedRooms/${cleanRoom}`).remove();
+                } catch (err) {
+                    console.warn('Could not remove joined room from Google profile:', err);
+                }
+            }
+            showFirebaseToast(`Removed "${cleanRoom}" from Joined Rooms.`);
+        }
+
+        function renderJoinedRoomsBar() {
+            const container = document.getElementById('joinedRoomsList');
+            if (!container) return;
+
+            const rooms = Object.values(joinedRoomsMap).sort((a, b) => {
+                if (a.roomCode === currentRoomCode) return -1;
+                if (b.roomCode === currentRoomCode) return 1;
+                return String(b.lastVisitedAt || '').localeCompare(String(a.lastVisitedAt || ''));
+            });
+
+            if (rooms.length === 0) {
+                container.innerHTML = `<span class="text-slate-500 italic">No rooms joined yet. Enter a room code above and click Join Room.</span>`;
+                return;
+            }
+
+            const activeLogCount = Object.keys(roomLogsById).length;
+            container.innerHTML = '';
+
+            rooms.forEach(room => {
+                const isActive = (room.roomCode === currentRoomCode);
+                const wrapper = document.createElement('div');
+                wrapper.className = `inline-flex items-center rounded-lg border transition overflow-hidden ${
+                    isActive
+                        ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200 shadow-sm'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-slate-800/80'
+                }`;
+
+                const readBtn = document.createElement('button');
+                readBtn.type = 'button';
+                readBtn.className = 'px-2.5 py-1 flex items-center space-x-1.5 text-[11px] font-semibold focus:outline-none';
+                readBtn.title = isActive
+                    ? `Currently reading room "${room.roomCode}" (${activeLogCount} player logs)`
+                    : `Click to switch to and read room "${room.roomCode}"`;
+
+                const countBadge = isActive
+                    ? `<span class="px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 text-[10px] font-bold">${activeLogCount} logs</span>`
+                    : `<span class="text-[10px] text-slate-500 group-hover:text-slate-300">Read</span>`;
+
+                readBtn.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}"></span>
+                    <span>${room.roomCode}</span>
+                    ${countBadge}
+                `;
+                readBtn.onclick = () => switchToJoinedRoom(room.roomCode);
+                wrapper.appendChild(readBtn);
+
+                if (room.roomCode !== DEFAULT_ROOM_CODE) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'px-1.5 py-1 text-[10px] text-slate-500 hover:text-rose-400 hover:bg-slate-950/50 border-l border-slate-800/80 transition';
+                    delBtn.title = `Remove "${room.roomCode}" from joined list`;
+                    delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    delBtn.onclick = (e) => removeJoinedRoom(e, room.roomCode);
+                    wrapper.appendChild(delBtn);
+                }
+
+                container.appendChild(wrapper);
+            });
         }
 
         function isGoogleSignedIn() {
@@ -1038,7 +1232,6 @@
 
         function resolveEntryDisplayName(entry, fallbackName = '') {
             if (!entry) return fallbackName || 'Unknown Player';
-            // If currently signed in with Google and this log belongs to the signed-in UID, prefer live Google display name
             if (isGoogleSignedIn() && (entry.ownerUid === currentFirebaseUser.uid || entry.uploadedByUid === currentFirebaseUser.uid)) {
                 const liveGoogleName = getActiveGoogleDisplayName();
                 if (liveGoogleName) return liveGoogleName;
@@ -1148,8 +1341,12 @@
                 savedRoom = localStorage.getItem(STORAGE_KEY_FB_ROOM) || DEFAULT_ROOM_CODE;
             } catch (e) {}
 
+            currentRoomCode = sanitizeFirebaseKey(savedRoom);
+            loadLocalJoinedRooms();
+            recordJoinedRoom(currentRoomCode);
+
             const roomInput = document.getElementById('firebaseRoomInput');
-            if (roomInput) roomInput.value = savedRoom;
+            if (roomInput) roomInput.value = currentRoomCode;
 
             if (typeof firebase === 'undefined') {
                 setFirebaseStatusUI('error', 'Firebase SDK unavailable');
@@ -1181,7 +1378,7 @@
                     firebaseConnected = true;
                     updateAuthHeaderUI(user);
 
-                    const currentRoom = roomInput ? roomInput.value.trim() : savedRoom;
+                    const currentRoom = roomInput ? roomInput.value.trim() : currentRoomCode;
                     subscribeToRoomLogs(currentRoom);
 
                     if (!user.isAnonymous) {
@@ -1196,15 +1393,22 @@
                             console.warn('Profile metadata update skipped:', profErr);
                         }
                         subscribeToGoogleUserLogs(user.uid);
+                        subscribeToJoinedRooms(user.uid);
+                        await recordJoinedRoom(currentRoom);
                         syncSelectedSlotsFromCloud();
                     } else {
                         if (activeGoogleUserLogsRef) {
                             activeGoogleUserLogsRef.off();
                             activeGoogleUserLogsRef = null;
                         }
+                        if (activeJoinedRoomsRef) {
+                            activeJoinedRoomsRef.off();
+                            activeJoinedRoomsRef = null;
+                        }
                         googleUserLogsById = {};
                         updateCloudCountBadge();
                         refreshCloudDropdowns();
+                        renderJoinedRoomsBar();
                     }
                 });
             } catch (err) {
@@ -1226,7 +1430,7 @@
                 const result = await firebaseAuth.signInWithPopup(provider);
                 const user = result.user;
                 const dispName = getActiveGoogleDisplayName() || user.displayName || user.email;
-                showFirebaseToast(`Signed in as ${dispName}. Uploads will now display "${dispName}" across all statistics!`);
+                showFirebaseToast(`Signed in as ${dispName}. Your joined rooms and logs are now linked.`);
             } catch (err) {
                 console.error('Google Sign-In error:', err);
                 if (err.code === 'auth/popup-closed-by-user') return;
@@ -1246,6 +1450,10 @@
                 if (activeGoogleUserLogsRef) {
                     activeGoogleUserLogsRef.off();
                     activeGoogleUserLogsRef = null;
+                }
+                if (activeJoinedRoomsRef) {
+                    activeJoinedRoomsRef.off();
+                    activeJoinedRoomsRef = null;
                 }
                 googleUserLogsById = {};
                 await firebaseAuth.signOut();
@@ -1275,9 +1483,12 @@
         function subscribeToRoomLogs(roomCode) {
             if (!firebaseDb || !firebaseConnected) return;
             const cleanRoom = sanitizeFirebaseKey(roomCode || DEFAULT_ROOM_CODE);
+            currentRoomCode = cleanRoom;
             try {
                 localStorage.setItem(STORAGE_KEY_FB_ROOM, cleanRoom);
             } catch (e) {}
+
+            recordJoinedRoom(cleanRoom);
 
             if (activeRoomRef) {
                 activeRoomRef.off();
@@ -1288,6 +1499,7 @@
                 roomLogsById = snapshot.val() || {};
                 updateCloudCountBadge();
                 refreshCloudDropdowns();
+                renderJoinedRoomsBar();
                 syncSelectedSlotsFromCloud();
             }, (err) => {
                 console.error('Realtime DB listener error:', err);
@@ -1298,7 +1510,7 @@
         function updateCloudCountBadge() {
             const countBadge = document.getElementById('cloudLogCountBadge');
             if (!countBadge) return;
-            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || currentRoomCode || DEFAULT_ROOM_CODE);
             const roomCount = Object.keys(roomLogsById).length;
             const googleCount = Object.keys(googleUserLogsById).length;
             if (isGoogleSignedIn()) {
@@ -1349,7 +1561,7 @@
                 return { uploaded: false, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: null };
             }
 
-            const roomCode = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+            const roomCode = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || currentRoomCode || DEFAULT_ROOM_CODE);
 
             const payload = {
                 playerId,
@@ -1369,15 +1581,14 @@
 
             try {
                 if (googleLinked) {
-                    // 1. Save strictly under the user's Google UID
                     await firebaseDb.ref(`users/${currentFirebaseUser.uid}/logs/${safeKey}`).set(payload);
-                    // 2. Also publish a verified Google-tagged copy into the active room so friends can compare
                     await firebaseDb.ref(`rooms/${roomCode}/players/${safeKey}`).set(payload);
+                    await recordJoinedRoom(roomCode);
                     showFirebaseToast(`Saved "${resolvedPlayerName}" (${playerId}) to your Google Account & room "${roomCode}".`);
                     return { uploaded: true, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: `google:${safeKey}` };
                 } else {
-                    // Anonymous room upload
                     await firebaseDb.ref(`rooms/${roomCode}/players/${safeKey}`).set(payload);
+                    await recordJoinedRoom(roomCode);
                     showFirebaseToast(`Synced "${resolvedPlayerName}" to anonymous room "${roomCode}" (${payload.expeditionCount} days).`);
                     return { uploaded: true, playerId, displayName: resolvedPlayerName, safeKey, compositeKey: `room:${safeKey}` };
                 }
@@ -1410,7 +1621,7 @@
                 uploadedByName: item.googleDisplayName || item.uploadedByName || item.googleName || ''
             })).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || DEFAULT_ROOM_CODE);
+            const cleanRoom = sanitizeFirebaseKey(document.getElementById('firebaseRoomInput')?.value || currentRoomCode || DEFAULT_ROOM_CODE);
 
             for (let i = 0; i < 4; i++) {
                 const select = document.getElementById(`cloudSelect${i + 1}`);
@@ -1425,7 +1636,6 @@
                     : 'Select player log (Local Sample)...';
                 select.appendChild(defaultOpt);
 
-                // Group 1: Signed-in Google Account Logs
                 if (googleEntries.length > 0) {
                     const gGroup = document.createElement('optgroup');
                     gGroup.label = 'My Google Account Logs';
@@ -1441,7 +1651,6 @@
                     select.appendChild(gGroup);
                 }
 
-                // Group 2: Active Room Logs (both Google-verified and Anonymous)
                 if (roomEntries.length > 0) {
                     const rGroup = document.createElement('optgroup');
                     rGroup.label = `Room: ${cleanRoom}`;
@@ -1458,7 +1667,6 @@
                     select.appendChild(rGroup);
                 }
 
-                // Built-in fallback sample option
                 const fallbackGroup = document.createElement('optgroup');
                 fallbackGroup.label = 'Built-in Sample';
                 const sampleOpt = document.createElement('option');
@@ -2014,14 +2222,14 @@
 
             document.getElementById('btnConnectRoom').addEventListener('click', () => {
                 const roomVal = document.getElementById('firebaseRoomInput').value.trim() || DEFAULT_ROOM_CODE;
-                if (firebaseConnected) {
-                    subscribeToRoomLogs(roomVal);
-                    showFirebaseToast(`Joined room "${sanitizeFirebaseKey(roomVal)}".`);
-                } else {
-                    try {
-                        localStorage.setItem(STORAGE_KEY_FB_ROOM, roomVal);
-                    } catch (e) {}
-                    initFirebaseSync();
+                switchToJoinedRoom(roomVal);
+            });
+
+            document.getElementById('firebaseRoomInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const roomVal = e.target.value.trim() || DEFAULT_ROOM_CODE;
+                    switchToJoinedRoom(roomVal);
                 }
             });
 
