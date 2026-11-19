@@ -208,7 +208,7 @@
                 <!-- Slot 1 -->
                 <div id="slotCard1" class="border border-indigo-500/50 bg-indigo-500/10 rounded-xl p-3.5 text-center transition flex flex-col justify-between relative group space-y-2.5">
                     <div class="flex items-center justify-between text-xs font-semibold text-indigo-400">
-                        <span id="labelPlayer1" class="truncate">Adam (Player 1)</span>
+                        <span id="labelPlayer1" class="truncate">Sample (Player 1)</span>
                         <i class="fa-solid fa-circle text-[10px]" style="color: #4285F4;"></i>
                     </div>
                     <div class="space-y-1 cursor-pointer py-0.5" onclick="document.getElementById('fileInput1').click()">
@@ -466,7 +466,7 @@
                         <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
                         <span id="rarityActivePlayerBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
                             <span id="rarityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span id="rarityPlayerLabel">Viewing: Adam</span>
+                            <span id="rarityPlayerLabel">Viewing: Sample</span>
                         </span>
                     </div>
 
@@ -497,7 +497,7 @@
                         <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
                         <span id="rollingRarityActivePlayerBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
                             <span id="rollingRarityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span id="rollingRarityPlayerLabel">Viewing: Adam</span>
+                            <span id="rollingRarityPlayerLabel">Viewing: Sample</span>
                         </span>
                     </div>
 
@@ -718,7 +718,7 @@
                         <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain card">?</button>
                         <span id="diversityActiveBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
                             <span id="diversityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span id="diversityPlayerLabel">Adam</span>
+                            <span id="diversityPlayerLabel">Sample</span>
                         </span>
                     </div>
                     <div class="flex items-center gap-1.5">
@@ -846,7 +846,7 @@
                             <button type="button" onclick="toggleCardHelp(this)" class="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/40 hover:text-white text-[10px] font-bold inline-flex items-center justify-center transition" title="Explain chart">?</button>
                             <span id="topicRarityActiveBadge" class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-500/40 bg-blue-500/10 text-blue-300">
                                 <span id="topicRarityPlayerDot" class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                <span id="topicRarityPlayerLabel">Viewing: Adam</span>
+                                <span id="topicRarityPlayerLabel">Viewing: Sample</span>
                             </span>
                         </div>
 
@@ -1221,8 +1221,8 @@
         }
 
         function extractAccountIdentity(json, fallbackLabel = '') {
-            const acc = (json && typeof json.account === 'object' && json.account !== null) ? json.account : {};
-            const rawId = acc.playerId || acc.id || acc.userId || acc.uid || fallbackLabel || 'unknown-player';
+            const acc = (json && typeof json.friends === 'object' && json.friends !== null) ? json.friends : {};
+            const rawId = acc.nickname || acc.id || acc.userId || acc.uid || fallbackLabel || 'unknown-player';
             const playerId = String(rawId).trim();
             const jsonName = String(acc.username || acc.name || acc.displayName || '').trim();
             const googleName = getActiveGoogleDisplayName();
@@ -1671,7 +1671,7 @@
                 fallbackGroup.label = 'Built-in Sample';
                 const sampleOpt = document.createElement('option');
                 sampleOpt.value = '__LOCAL_SAMPLE__';
-                sampleOpt.textContent = 'local-sample (Adam Demo) [22d]';
+                sampleOpt.textContent = 'local-sample (Sample Demo)';
                 if (currentVal === '__LOCAL_SAMPLE__') sampleOpt.selected = true;
                 fallbackGroup.appendChild(sampleOpt);
                 select.appendChild(fallbackGroup);
@@ -1709,7 +1709,7 @@
                 return;
             }
             if (compositeKey === '__LOCAL_SAMPLE__') {
-                applyJsonToSlot(slotIdx, sampleFarflungData, 'Adam', 'Adam_data.json', '__LOCAL_SAMPLE__', true);
+                applyJsonToSlot(slotIdx, sampleFarflungData, 'Sample', 'Sample_data.json', '__LOCAL_SAMPLE__', true);
                 return;
             }
             const entry = resolveCloudEntryByCompositeKey(compositeKey);
@@ -1934,9 +1934,9 @@
         let heatLayer = null;
         let expandedCard = null;
 
-        // Sample Data for Player 1 (Adam) - Full 22-Day Expedition Log
+        // Sample Data for Player 1 (Sample) - Full 22-Day Expedition Log
         const sampleFarflungData = {
-            "account": { "playerId": "local-sample", "username": "Adam" },
+            "account": { "playerId": "local-sample", "username": "Sample" },
             "expeditions": [
                 {"day":"2026-10-20","distanceKm":210,"pins":[
                     {"round":1,"rarity":"wayfarer","distanceKm":70,"points":70,"cardText":"Pin a country with a Z in its name","answer":"ZMB","countedAs":"ZMB","lon":25.04,"lat":-14.51,"zoom":2.2},
@@ -2348,7 +2348,7 @@
         function resetToSinglePlayer() {
             loadedPlayers = [null, null, null, null];
             slotSelectedCloudIds = ['__LOCAL_SAMPLE__', null, null, null];
-            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0], 'local-sample');
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Sample', PLAYER_PALETTE[0], 'local-sample');
             selectedRarityPlayerIndex = 0;
             selectedRollingRarityPlayerIndex = 0;
             selectedDiversityPlayerIndex = 0;
@@ -2357,8 +2357,8 @@
             document.getElementById('startDateFilter').value = '';
             document.getElementById('endDateFilter').value = '';
 
-            document.getElementById('labelPlayer1').innerText = 'Adam (Player 1)';
-            document.getElementById('fileName1').innerText = 'Adam_data.json';
+            document.getElementById('labelPlayer1').innerText = 'Sample (Player 1)';
+            document.getElementById('fileName1').innerText = 'Sample_data.json';
             const badge1 = document.getElementById('playerIdBadge1');
             if (badge1) {
                 badge1.innerText = 'ID: local-sample';
@@ -2620,7 +2620,7 @@
                 };
             }
 
-            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Adam', PLAYER_PALETTE[0], 'demo-adam');
+            loadedPlayers[0] = parsePlayerData(sampleFarflungData, 'Sample', PLAYER_PALETTE[0], 'demo-adam');
             loadedPlayers[1] = parsePlayerData(createMockJSON(p2Dist, 1, 'demo-dan', 'Dan'), 'Dan', PLAYER_PALETTE[1], 'demo-dan');
             loadedPlayers[2] = parsePlayerData(createMockJSON(p3Dist, 2, 'demo-jakob', 'Jakob'), 'Jakob', PLAYER_PALETTE[2], 'demo-jakob');
             loadedPlayers[3] = parsePlayerData(createMockJSON(p4Dist, 3, 'demo-nathan', 'Nathan'), 'Nathan', PLAYER_PALETTE[3], 'demo-nathan');
